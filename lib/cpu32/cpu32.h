@@ -796,7 +796,7 @@ U8 PG0F(GC*); // Page 0F - Additional instructions page
 U8 (*INSTS[256])() = {
   &HLT  , &TRAP , &UNK  , &STI  , &IRET , &NOP  , &UNK  , &UNK  , &MULri, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
   &SUBri, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &SUBrb, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
-  &INXr , &INXr , &INXr , &INXr , &INXr , &INXr , &INXr , &INXr , &DEXr , &DEXr , &DEXr , &DEXr , &DEXr , &DEXr , &DEXr , &DEXr ,
+  &INXr , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &DEXr , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
   &INXb , &UNK  , &DEXb , &UNK  , &UNK  , &UNK  , &UNK  , &CMPrc, &ANDrc, &ORArc, &XORrc, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
   &INXw , &INT  , &DEXw , &UNK  , &UNK  , &UNK  , &UNK  , &ADDrc, &ADDri, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
   &ADDrb, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &ADDrw, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
@@ -885,7 +885,7 @@ U8 Exec(GC* gc, const U32 memsize, U8 verbosemode) {
   execloop:
     exc = (INSTS[gc->mem[gc->EPC]])(gc);
     insts++;
-    printh(gc->EPC, "\n");
+    // printh(gc->EPC, "\n");
     if (exc != 0) {
       printf("gc32: executed 1E%.10lf instructions\n", log10(insts));
       printf(verbosemode ? "last executed instruction: \033[32m$%02X\033[0m\n" : "", gc->mem[gc->EPC]);
