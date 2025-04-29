@@ -127,8 +127,17 @@ U8 UNK(GC* gc) {
 }
 
 /* Instructions implementation start */
+/*
+  Instruction structure:
+    <opcode8> <imm8> [imm32]
+  The imm8 will be in every instruction
+  It can be used as a register or an 8-bit immediate (e.g. INT8)
+  So even HLT for example will be $0000
+*/
 // 00           hlt
 U8 HLT(GC* gc) {
+  gc_errno = gc->mem[gc->EPC+1];
+  gc->EPC += 2;
   return 1;
 }
 
@@ -136,7 +145,7 @@ U8 HLT(GC* gc) {
 U8 TRAP(GC* gc) {
   old_st_legacy;
   ExecD(gc, 1);
-  gc->EPC++;
+  gc->EPC += 2;
   return 0;
 }
 
@@ -149,6 +158,7 @@ U8 STI(GC* gc) {
 
 // 04           iret
 U8 IRET(GC* gc) {
+  // gc->EPC += 2; is not needed because it overwrites EPC
   gc->PS = StackPop(gc);
   gc->EPC = StackPop(gc);
   return 0;
@@ -156,58 +166,58 @@ U8 IRET(GC* gc) {
 
 // 05           nop
 U8 NOP(GC* gc) {
-  gc->EPC++;
+  gc->EPC += 2;
   return 0;
 }
 
-// 08-0F        mul reg imm24
+// 08           mul reg imm24
 U8 MULri(GC* gc) {
-  gc->reg[(gc->mem[gc->EPC]-0x08) % 8] *= Read32(gc, gc->EPC+1);
-  gc->EPC += 5;
+  gc->reg[gc->mem[gc->EPC+1] % 32] *= Read32(gc, gc->EPC+2);
+  gc->EPC += 6;
   return 0;
 }
 
-// 10-17        sub reg imm24
+// 10           sub reg imm24
 U8 SUBri(GC* gc) {
-  gc->reg[(gc->mem[gc->EPC]-0x10) % 8] -= Read32(gc, gc->EPC+1);
-  gc->EPC += 5;
+  gc->reg[gc->mem[gc->EPC+1] % 32] -= Read32(gc, gc->EPC+2);
+  gc->EPC += 6;
   return 0;
 }
 
-// 18-1F        sub reg byte[imm24]
+// 18           sub reg byte[imm24]
 U8 SUBrb(GC* gc) {
-  gc->reg[(gc->mem[gc->EPC]-0x18) % 8] -= gc->mem[Read32(gc, gc->EPC+1)];
-  gc->EPC += 5;
+  gc->reg[gc->mem[gc->EPC+1] % 32] -= gc->mem[Read32(gc, gc->EPC+2)];
+  gc->EPC += 6;
   return 0;
 }
 
-// 20-27        inx reg
+// 20           inx reg
 U8 INXr(GC* gc) {
-  gc->reg[gc->mem[gc->EPC]-0x20]++;
-  gc->EPC++;
+  gc->reg[gc->mem[gc->EPC+1]]++;
+  gc->EPC += 2;
   return 0;
 }
 
-// 28-2F        inx reg
+// 28           inx reg
 U8 DEXr(GC* gc) {
-  gc->reg[gc->mem[gc->EPC]-0x28]--;
-  gc->EPC++;
+  gc->reg[gc->mem[gc->EPC+1]]--;
+  gc->EPC += 2;
   return 0;
 }
 
 // 30           inx #imm24
 U8 INXb(GC* gc) {
-  U32 addr = Read32(gc, gc->EPC+1);
+  U32 addr = Read32(gc, gc->EPC+2);
   gc->mem[addr]++;
-  gc->EPC += 5;
+  gc->EPC += 6;
   return 0;
 }
 
 // 32           dex #imm24
 U8 DEXb(GC* gc) {
-  U32 addr = Read32(gc, gc->EPC+1);
+  U32 addr = Read32(gc, gc->EPC+2);
   gc->mem[addr]--;
-  gc->EPC += 5;
+  gc->EPC += 6;
   return 0;
 }
 
@@ -252,10 +262,10 @@ U8 XORrc(GC* gc) {
 
 // 40           inx @imm24
 U8 INXw(GC* gc) {
-  U32 addr = Read32(gc, gc->EPC+1);
+  U32 addr = Read32(gc, gc->EPC+2);
   U16 a = ReadWord(gc, addr);
   WriteWord(gc, addr, a+1);
-  gc->EPC += 5;
+  gc->EPC += 6;
   return 0;
 }
 
@@ -318,10 +328,10 @@ U8 INT(GC* gc) {
 
 // 42           dex @imm24
 U8 DEXw(GC* gc) {
-  U32 addr = Read32(gc, gc->EPC+1);
+  U32 addr = Read32(gc, gc->EPC+2);
   U16 a = ReadWord(gc, addr);
   WriteWord(gc, addr, a-1);
-  gc->EPC += 5;
+  gc->EPC += 6;
   return 0;
 }
 
@@ -335,64 +345,66 @@ U8 ADDrc(GC* gc) {
 
 // 48-4F        add reg imm24
 U8 ADDri(GC* gc) {
-  gc->reg[(gc->mem[gc->EPC]-0x48) % 8] += Read32(gc, gc->EPC+1);
-  gc->EPC += 5;
+  gc->reg[gc->mem[gc->EPC+1] % 32] += Read32(gc, gc->EPC+2);
+  gc->EPC += 6;
   return 0;
 }
 
 // 50-57        add reg byte[imm24]
 U8 ADDrb(GC* gc) {
-  gc->reg[(gc->mem[gc->EPC]-0x50) % 8] += gc->mem[Read32(gc, gc->EPC+1)];
-  gc->EPC += 5;
+  gc->reg[gc->mem[gc->EPC+1] % 32] += gc->mem[Read32(gc, gc->EPC+2)];
+  gc->EPC += 6;
   return 0;
 }
 
 // 58-5F        mov reg word[imm24]
 U8 ADDrw(GC* gc) {
-  gc->reg[(gc->mem[gc->EPC]-0x58) % 8] += ReadWord(gc, Read32(gc, gc->EPC+1));
-  gc->EPC += 5;
+  gc->reg[gc->mem[gc->EPC+1] % 32] += ReadWord(gc, Read32(gc, gc->EPC+2));
+  gc->EPC += 6;
   return 0;
 }
 
 // 60-67        mov byte[imm24] reg
 U8 ADDbr(GC* gc) {
-  gc->mem[Read32(gc, gc->EPC+1)] += gc->reg[(gc->mem[gc->EPC]-0x60) % 8];
-  gc->EPC += 5;
+  gc->mem[Read32(gc, gc->EPC+2)] += gc->reg[gc->mem[gc->EPC+1] % 32];
+  gc->EPC += 6;
   return 0;
 }
 
 // 68-6F        add word[imm24] reg
 U8 ADDwr(GC* gc) {
-  U16 addr = Read32(gc, gc->EPC+1);
+  U16 addr = Read32(gc, gc->EPC+2);
   U16 w = ReadWord(gc, addr);
-  WriteWord(gc, addr, w+gc->reg[(gc->mem[gc->EPC]-0x60) % 8]);
-  gc->EPC += 5;
+  WriteWord(gc, addr, w+gc->reg[gc->mem[gc->EPC+1] % 32]);
+  gc->EPC += 6;
   return 0;
 }
 
 // 70-77        cmp reg imm24
 U8 CMPri(GC* gc) {
-  I32 val0 = gc->reg[(gc->mem[gc->EPC]-0x70) % 8];
-  I32 val1 = Read32(gc, gc->EPC+1);
+  I32 val0 = gc->reg[gc->mem[gc->EPC+1] % 32];
+  I32 val1 = Read32(gc, gc->EPC+2);
 
   if (!(val0 - val1))    SET_ZF(gc->PS);
   else                   RESET_ZF(gc->PS);
   if ((val0 - val1) < 0) SET_NF(gc->PS);
   else                   RESET_NF(gc->PS);
 
-  gc->EPC += 5;
+  gc->EPC += 6;
   return 0;
 }
 
 // 78           call imm24
 U8 CALLa(GC* gc) {
   StackPush(gc, gc->EPC+4);
-  gc->EPC = Read32(gc, gc->EPC+1);
+  // gc->EPC += 2; but PC is overwritten
+  gc->EPC = Read32(gc, gc->EPC+2);
   return 0;
 }
 
 // 79           ret
 U8 RET(GC* gc) {
+  // gc->EPC += 2; but PC is overwritten
   gc->EPC = StackPop(gc);
   return 0;
 }
@@ -465,100 +477,101 @@ U8 LODDc(GC* gc) {
   return 0;
 }
 
-// 80-83        mov reg imm24
+// 80-83        div reg imm24
 U8 DIVri(GC* gc) {
-  U32 a = Read32(gc, gc->EPC+1);
-  gc->reg[EDX] = (gc->reg[(gc->mem[gc->EPC]-0x80) % 4] % a);
-  gc->reg[(gc->mem[gc->EPC]-0x80) % 4] /= a;
-  gc->EPC += 5;
+  U32 a = Read32(gc, gc->EPC+2);
+  U8 r = gc->mem[gc->EPC+1] % 32; // reg
+  gc->reg[EDX] = (gc->reg[r] % a);
+  gc->reg[r] /= a;
+  gc->EPC += 6;
   return 0;
 }
 
 // 86           jmp imm24
 U8 JMPa(GC* gc) {
-  gc->EPC = Read32(gc, gc->EPC+1);
+  gc->EPC = Read32(gc, gc->EPC+2);
   return 0;
 }
 
 // 90-97        sub reg word[imm24]
 U8 SUBrw(GC* gc) {
-  gc->reg[(gc->mem[gc->EPC]-0x90) % 8] -= ReadWord(gc, Read32(gc, gc->EPC+1));
-  gc->EPC += 5;
+  gc->reg[gc->mem[gc->EPC+1] % 32] -= ReadWord(gc, Read32(gc, gc->EPC+2));
+  gc->EPC += 6;
   return 0;
 }
 
 // A0           je imm24
 U8 JEa(GC* gc) {
   if (ZF(gc->PS)) {
-    gc->EPC = Read32(gc, gc->EPC+1);
+    gc->EPC = Read32(gc, gc->EPC+2);
     RESET_ZF(gc->PS);
   }
-  else gc->EPC += 5;
+  else gc->EPC += 6;
   return 0;
 }
 
 // A1           jne imm24
 U8 JNEa(GC* gc) {
   if (!ZF(gc->PS)) {
-    gc->EPC = Read32(gc, gc->EPC+1);
+    gc->EPC = Read32(gc, gc->EPC+2);
   }
-  else gc->EPC += 5;
+  else gc->EPC += 6;
   return 0;
 }
 
 // A2           jc imm24
 U8 JCa(GC* gc) {
   if (CF(gc->PS)) {
-    gc->EPC = Read32(gc, gc->EPC+1);
+    gc->EPC = Read32(gc, gc->EPC+2);
     RESET_CF(gc->PS);
   }
-  else gc->EPC += 5;
+  else gc->EPC += 6;
   return 0;
 }
 
 // A3           jnc imm24
 U8 JNCa(GC* gc) {
   if (!CF(gc->PS)) {
-    gc->EPC = Read32(gc, gc->EPC+1);
+    gc->EPC = Read32(gc, gc->EPC+2);
   }
-  else gc->EPC += 5;
+  else gc->EPC += 6;
   return 0;
 }
 
 // A4           js imm24
 U8 JSa(GC* gc) {
   if (!NF(gc->PS)) {
-    gc->EPC = Read32(gc, gc->EPC+1);
+    gc->EPC = Read32(gc, gc->EPC+2);
   }
-  else gc->EPC += 5;
+  else gc->EPC += 6;
   return 0;
 }
 
 // A5           jn imm24
 U8 JNa(GC* gc) {
   if (NF(gc->PS)) {
-    gc->EPC = Read32(gc, gc->EPC+1);
+    gc->EPC = Read32(gc, gc->EPC+2);
     RESET_NF(gc->PS);
   }
-  else gc->EPC += 5;
+  else gc->EPC += 6;
   return 0;
 }
 
 // A6           ji imm24
 U8 JIa(GC* gc) {
   if (IF(gc->PS)) {
-    gc->EPC = Read32(gc, gc->EPC+1);
+    gc->EPC = Read32(gc, gc->EPC+2);
   }
-  else gc->EPC += 5;
+  else gc->EPC += 6;
   return 0;
 }
 
 // A7           jni imm24
 U8 JNIa(GC* gc) {
   if (!IF(gc->PS)) {
-    gc->EPC = Read32(gc, gc->EPC+1);
+    gc->EPC = Read32(gc, gc->EPC+2);
   }
-  else gc->EPC += 5;
+  else gc->EPC += 6;
   return 0;
 }
 
@@ -568,7 +581,7 @@ U8 RE(GC* gc) {
     gc->EPC = StackPop(gc);
     RESET_ZF(gc->PS);
   }
-  else gc->EPC++;
+  else gc->EPC += 2;
   return 0;
 }
 
@@ -577,7 +590,7 @@ U8 RNE(GC* gc) {
   if (!ZF(gc->PS)) {
     gc->EPC = StackPop(gc);
   }
-  else gc->EPC++;
+  else gc->EPC += 2;
   return 0;
 }
 
@@ -587,7 +600,7 @@ U8 RC(GC* gc) {
     gc->EPC = StackPop(gc);
     RESET_CF(gc->PS);
   }
-  else gc->EPC++;
+  else gc->EPC += 2;
   return 0;
 }
 
@@ -596,7 +609,7 @@ U8 RNC(GC* gc) {
   if (!CF(gc->PS)) {
     gc->EPC = StackPop(gc);
   }
-  else gc->EPC++;
+  else gc->EPC += 2;
   return 0;
 }
 
@@ -605,7 +618,7 @@ U8 RS(GC* gc) {
   if (!NF(gc->PS)) {
     gc->EPC = StackPop(gc);
   }
-  else gc->EPC++;
+  else gc->EPC += 2;
   return 0;
 }
 
@@ -615,7 +628,7 @@ U8 RN(GC* gc) {
     gc->EPC = StackPop(gc);
     RESET_NF(gc->PS);
   }
-  else gc->EPC++;
+  else gc->EPC += 2;
   return 0;
 }
 
@@ -625,7 +638,7 @@ U8 RI(GC* gc) {
     gc->EPC = StackPop(gc);
     RESET_IF(gc->PS);
   }
-  else gc->EPC++;
+  else gc->EPC += 2;
   return 0;
 }
 
@@ -634,27 +647,27 @@ U8 RNI(GC* gc) {
   if (!IF(gc->PS)) {
     gc->EPC = StackPop(gc);
   }
-  else gc->EPC++;
+  else gc->EPC += 2;
   return 0;
 }
 
 // B0           push imm24
 U8 PUSHi(GC* gc) {
-  StackPush(gc, Read32(gc, gc->EPC+1));
-  gc->EPC += 5;
+  StackPush(gc, Read32(gc, gc->EPC+2));
+  gc->EPC += 6;
   return 0;
 }
 
 // B5           push reg
 U8 PUSHr(GC* gc) {
-  StackPush(gc, gc->reg[gc->mem[gc->EPC+1]]);
+  StackPush(gc, gc->reg[gc->mem[gc->EPC+1] % 32]);
   gc->EPC += 2;
   return 0;
 }
 
 // B6           pop reg
 U8 POPr(GC* gc) {
-  gc->reg[gc->mem[gc->EPC+1]] = StackPop(gc);
+  gc->reg[gc->mem[gc->EPC+1] % 32] = StackPop(gc);
   gc->EPC += 2;
   return 0;
 }
@@ -663,10 +676,10 @@ U8 POPr(GC* gc) {
 U8 LOOPa(GC* gc) {
   if (gc->reg[ECX]) {
     gc->reg[ECX]--;
-    gc->EPC = Read32(gc, gc->EPC+1);
+    gc->EPC = Read32(gc, gc->EPC+2);
   }
   else {
-    gc->EPC += 5;
+    gc->EPC += 6;
   }
   return 0;
 }
@@ -674,14 +687,14 @@ U8 LOOPa(GC* gc) {
 // B9           ldds
 U8 LDDS(GC* gc) {
   gc->reg[EAX] = gc->rom[gc->reg[ESI]];
-  gc->EPC++;
+  gc->EPC += 2;
   return 0;
 }
 
 // BA           lddg
 U8 LDDG(GC* gc) {
   gc->reg[EAX] = gc->rom[gc->reg[ESI]];
-  gc->EPC++;
+  gc->EPC += 2;
   return 0;
 }
 
@@ -694,7 +707,7 @@ U8 STDS(GC* gc) {
 
 // BC           stdg
 U8 STDG(GC* gc) {
-  gc->rom[gc->reg[EGI]] = gc->reg[gc->mem[gc->EPC+1]];
+  gc->rom[gc->reg[EGI]] = gc->reg[gc->mem[gc->EPC+1] % 32];
   gc->EPC += 2;
   return 0;
 }
@@ -709,8 +722,8 @@ U8 POWrc(GC* gc) {
 
 // C0-C7        mov reg imm24
 U8 MOVri(GC* gc) {
-  gc->reg[(gc->mem[gc->EPC]-0xC0) % 8] = Read32(gc, gc->EPC+1);
-  gc->EPC += 5;
+  gc->reg[gc->mem[gc->EPC+1] % 32] = Read32(gc, gc->EPC+2);
+  gc->EPC += 6;
   return 0;
 }
 
@@ -749,29 +762,29 @@ U8 DIVrc(GC* gc) {
 
 // D0-D7        mov reg byte[imm24]
 U8 MOVrb(GC* gc) {
-  gc->reg[(gc->mem[gc->EPC]-0xD0) % 8] = gc->mem[Read32(gc, gc->EPC+1)];
-  gc->EPC += 5;
+  gc->reg[gc->mem[gc->EPC+1] % 32] = gc->mem[Read32(gc, gc->EPC+2)];
+  gc->EPC += 6;
   return 0;
 }
 
 // D8-DF        mov reg word[imm24]
 U8 MOVrw(GC* gc) {
-  gc->reg[(gc->mem[gc->EPC]-0xD8) % 8] = ReadWord(gc, Read32(gc, gc->EPC+1));
-  gc->EPC += 5;
+  gc->reg[gc->mem[gc->EPC+1] % 32] = ReadWord(gc, Read32(gc, gc->EPC+2));
+  gc->EPC += 6;
   return 0;
 }
 
 // E0-E7        mov byte[imm24] reg
 U8 MOVbr(GC* gc) {
-  gc->mem[Read32(gc, gc->EPC+1)] = gc->reg[(gc->mem[gc->EPC]-0xE0) % 8];
-  gc->EPC += 5;
+  gc->mem[Read32(gc, gc->EPC+2)] = gc->reg[gc->mem[gc->EPC+1] % 32];
+  gc->EPC += 6;
   return 0;
 }
 
 // E8-EF        mov word[imm24] reg
 U8 MOVwr(GC* gc) {
-  WriteWord(gc, Read32(gc, gc->EPC+1), gc->reg[(gc->mem[gc->EPC]-0xE8) % 8]);
-  gc->EPC += 5;
+  WriteWord(gc, Read32(gc, gc->EPC+2), gc->reg[gc->mem[gc->EPC+1] % 32]);
+  gc->EPC += 6;
   return 0;
 }
 
@@ -781,21 +794,21 @@ U8 PG0F(GC*); // Page 0F - Additional instructions page
 
 // Zero page instructions
 U8 (*INSTS[256])() = {
-  &HLT  , &TRAP , &UNK  , &STI  , &IRET , &NOP  , &UNK  , &UNK  , &MULri, &MULri, &MULri, &MULri, &MULri, &MULri, &MULri, &MULri,
-  &SUBri, &SUBri, &SUBri, &SUBri, &SUBri, &SUBri, &SUBri, &SUBri, &SUBrb, &SUBrb, &SUBrb, &SUBrb, &SUBrb, &SUBrb, &SUBrb, &SUBrb,
+  &HLT  , &TRAP , &UNK  , &STI  , &IRET , &NOP  , &UNK  , &UNK  , &MULri, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
+  &SUBri, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &SUBrb, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
   &INXr , &INXr , &INXr , &INXr , &INXr , &INXr , &INXr , &INXr , &DEXr , &DEXr , &DEXr , &DEXr , &DEXr , &DEXr , &DEXr , &DEXr ,
   &INXb , &UNK  , &DEXb , &UNK  , &UNK  , &UNK  , &UNK  , &CMPrc, &ANDrc, &ORArc, &XORrc, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
-  &INXw , &INT  , &DEXw , &UNK  , &UNK  , &UNK  , &UNK  , &ADDrc, &ADDri, &ADDri, &ADDri, &ADDri, &ADDri, &ADDri, &ADDri, &ADDri,
-  &ADDrb, &ADDrb, &ADDrb, &ADDrb, &ADDrb, &ADDrb, &ADDrb, &ADDrb, &ADDrw, &ADDrw, &ADDrw, &ADDrw, &ADDrw, &ADDrw, &ADDrw, &ADDrw,
-  &ADDbr, &ADDbr, &ADDbr, &ADDbr, &ADDbr, &ADDbr, &ADDbr, &ADDbr, &ADDwr, &ADDwr, &ADDwr, &ADDwr, &ADDwr, &ADDwr, &ADDwr, &ADDwr,
-  &CMPri, &CMPri, &CMPri, &CMPri, &CMPri, &CMPri, &CMPri, &CMPri, &CALLa, &RET  , &SALrg, &SARrg, &UNK  , &UNK  , &STOBc, &LODBc,
-  &DIVri, &DIVri, &DIVri, &DIVri, &DIVri, &DIVri, &JMPa , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &STOWc, &LODWc,
-  &SUBrw, &SUBrw, &SUBrw, &SUBrw, &SUBrw, &SUBrw, &SUBrw, &SUBrw, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &STODc, &LODDc,
+  &INXw , &INT  , &DEXw , &UNK  , &UNK  , &UNK  , &UNK  , &ADDrc, &ADDri, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
+  &ADDrb, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &ADDrw, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
+  &ADDbr, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &ADDwr, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
+  &CMPri, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &CALLa, &RET  , &SALrg, &SARrg, &UNK  , &UNK  , &STOBc, &LODBc,
+  &DIVri, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &JMPa , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &STOWc, &LODWc,
+  &SUBrw, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &STODc, &LODDc,
   &JEa  , &JNEa , &JCa  , &JNCa , &JSa  , &JNa  , &JIa  , &JNIa , &RE   , &RNE  , &RC   , &RNC  , &RS   , &RN   , &RI   , &RNI  ,
   &PUSHi, &UNK  , &UNK  , &UNK  , &UNK  , &PUSHr, &POPr , &UNK  , &LOOPa, &LDDS , &LDDG , &STDS , &STDG , &UNK  , &UNK  , &POWrc,
   &MOVri, &MOVri, &MOVri, &MOVri, &MOVri, &MOVri, &MOVri, &MOVri, &SUBrc, &MULrc, &DIVrc, &UNK  , &UNK  , &UNK  , &UNK  , &MOVrc,
-  &MOVrb, &MOVrb, &MOVrb, &MOVrb, &MOVrb, &MOVrb, &MOVrb, &MOVrb, &MOVrw, &MOVrw, &MOVrw, &MOVrw, &MOVrw, &MOVrw, &MOVrw, &MOVrw,
-  &MOVbr, &MOVbr, &MOVbr, &MOVbr, &MOVbr, &MOVbr, &MOVbr, &MOVbr, &MOVwr, &MOVwr, &MOVwr, &MOVwr, &MOVwr, &MOVwr, &MOVwr, &MOVwr,
+  &MOVrb, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &MOVrw, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
+  &MOVbr, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &MOVwr, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
   &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK
 };
 
