@@ -170,21 +170,21 @@ U8 NOP(GC* gc) {
   return 0;
 }
 
-// 08           mul reg imm24
+// 08           mul reg imm32
 U8 MULri(GC* gc) {
   gc->reg[gc->mem[gc->EPC+1] % 32] *= Read32(gc, gc->EPC+2);
   gc->EPC += 6;
   return 0;
 }
 
-// 10           sub reg imm24
+// 10           sub reg imm32
 U8 SUBri(GC* gc) {
   gc->reg[gc->mem[gc->EPC+1] % 32] -= Read32(gc, gc->EPC+2);
   gc->EPC += 6;
   return 0;
 }
 
-// 18           sub reg byte[imm24]
+// 18           sub reg byte[imm32]
 U8 SUBrb(GC* gc) {
   gc->reg[gc->mem[gc->EPC+1] % 32] -= gc->mem[Read32(gc, gc->EPC+2)];
   gc->EPC += 6;
@@ -205,7 +205,7 @@ U8 DEXr(GC* gc) {
   return 0;
 }
 
-// 30           inx #imm24
+// 30           inx #imm32
 U8 INXb(GC* gc) {
   U32 addr = Read32(gc, gc->EPC+2);
   gc->mem[addr]++;
@@ -213,7 +213,7 @@ U8 INXb(GC* gc) {
   return 0;
 }
 
-// 32           dex #imm24
+// 32           dex #imm32
 U8 DEXb(GC* gc) {
   U32 addr = Read32(gc, gc->EPC+2);
   gc->mem[addr]--;
@@ -260,7 +260,7 @@ U8 XORrc(GC* gc) {
   return 0;
 }
 
-// 40           inx @imm24
+// 40           inx @imm32
 U8 INXw(GC* gc) {
   U32 addr = Read32(gc, gc->EPC+2);
   U16 a = ReadWord(gc, addr);
@@ -326,7 +326,7 @@ U8 INT(GC* gc) {
   return 0;
 }
 
-// 42           dex @imm24
+// 42           dex @imm32
 U8 DEXw(GC* gc) {
   U32 addr = Read32(gc, gc->EPC+2);
   U16 a = ReadWord(gc, addr);
@@ -343,35 +343,35 @@ U8 ADDrc(GC* gc) {
   return 0;
 }
 
-// 48-4F        add reg imm24
+// 48-4F        add reg imm32
 U8 ADDri(GC* gc) {
   gc->reg[gc->mem[gc->EPC+1] % 32] += Read32(gc, gc->EPC+2);
   gc->EPC += 6;
   return 0;
 }
 
-// 50-57        add reg byte[imm24]
+// 50-57        add reg byte[imm32]
 U8 ADDrb(GC* gc) {
   gc->reg[gc->mem[gc->EPC+1] % 32] += gc->mem[Read32(gc, gc->EPC+2)];
   gc->EPC += 6;
   return 0;
 }
 
-// 58-5F        mov reg word[imm24]
+// 58-5F        mov reg word[imm32]
 U8 ADDrw(GC* gc) {
   gc->reg[gc->mem[gc->EPC+1] % 32] += ReadWord(gc, Read32(gc, gc->EPC+2));
   gc->EPC += 6;
   return 0;
 }
 
-// 60-67        mov byte[imm24] reg
+// 60-67        mov byte[imm32] reg
 U8 ADDbr(GC* gc) {
   gc->mem[Read32(gc, gc->EPC+2)] += gc->reg[gc->mem[gc->EPC+1] % 32];
   gc->EPC += 6;
   return 0;
 }
 
-// 68-6F        add word[imm24] reg
+// 68-6F        add word[imm32] reg
 U8 ADDwr(GC* gc) {
   U16 addr = Read32(gc, gc->EPC+2);
   U16 w = ReadWord(gc, addr);
@@ -380,7 +380,7 @@ U8 ADDwr(GC* gc) {
   return 0;
 }
 
-// 70-77        cmp reg imm24
+// 70-77        cmp reg imm32
 U8 CMPri(GC* gc) {
   I32 val0 = gc->reg[gc->mem[gc->EPC+1] % 32];
   I32 val1 = Read32(gc, gc->EPC+2);
@@ -394,9 +394,9 @@ U8 CMPri(GC* gc) {
   return 0;
 }
 
-// 78           call imm24
+// 78           call imm32
 U8 CALLa(GC* gc) {
-  StackPush(gc, gc->EPC+4);
+  StackPush(gc, gc->EPC+6);
   // gc->EPC += 2; but PC is overwritten
   gc->EPC = Read32(gc, gc->EPC+2);
   return 0;
@@ -477,7 +477,7 @@ U8 LODDc(GC* gc) {
   return 0;
 }
 
-// 80-83        div reg imm24
+// 80-83        div reg imm32
 U8 DIVri(GC* gc) {
   U32 a = Read32(gc, gc->EPC+2);
   U8 r = gc->mem[gc->EPC+1] % 32; // reg
@@ -487,20 +487,20 @@ U8 DIVri(GC* gc) {
   return 0;
 }
 
-// 86           jmp imm24
+// 86           jmp imm32
 U8 JMPa(GC* gc) {
   gc->EPC = Read32(gc, gc->EPC+2);
   return 0;
 }
 
-// 90-97        sub reg word[imm24]
+// 90-97        sub reg word[imm32]
 U8 SUBrw(GC* gc) {
   gc->reg[gc->mem[gc->EPC+1] % 32] -= ReadWord(gc, Read32(gc, gc->EPC+2));
   gc->EPC += 6;
   return 0;
 }
 
-// A0           je imm24
+// A0           je imm32
 U8 JEa(GC* gc) {
   if (ZF(gc->PS)) {
     gc->EPC = Read32(gc, gc->EPC+2);
@@ -510,7 +510,7 @@ U8 JEa(GC* gc) {
   return 0;
 }
 
-// A1           jne imm24
+// A1           jne imm32
 U8 JNEa(GC* gc) {
   if (!ZF(gc->PS)) {
     gc->EPC = Read32(gc, gc->EPC+2);
@@ -519,7 +519,7 @@ U8 JNEa(GC* gc) {
   return 0;
 }
 
-// A2           jc imm24
+// A2           jc imm32
 U8 JCa(GC* gc) {
   if (CF(gc->PS)) {
     gc->EPC = Read32(gc, gc->EPC+2);
@@ -529,7 +529,7 @@ U8 JCa(GC* gc) {
   return 0;
 }
 
-// A3           jnc imm24
+// A3           jnc imm32
 U8 JNCa(GC* gc) {
   if (!CF(gc->PS)) {
     gc->EPC = Read32(gc, gc->EPC+2);
@@ -538,7 +538,7 @@ U8 JNCa(GC* gc) {
   return 0;
 }
 
-// A4           js imm24
+// A4           js imm32
 U8 JSa(GC* gc) {
   if (!NF(gc->PS)) {
     gc->EPC = Read32(gc, gc->EPC+2);
@@ -547,7 +547,7 @@ U8 JSa(GC* gc) {
   return 0;
 }
 
-// A5           jn imm24
+// A5           jn imm32
 U8 JNa(GC* gc) {
   if (NF(gc->PS)) {
     gc->EPC = Read32(gc, gc->EPC+2);
@@ -557,7 +557,7 @@ U8 JNa(GC* gc) {
   return 0;
 }
 
-// A6           ji imm24
+// A6           ji imm32
 U8 JIa(GC* gc) {
   if (IF(gc->PS)) {
     gc->EPC = Read32(gc, gc->EPC+2);
@@ -566,7 +566,7 @@ U8 JIa(GC* gc) {
   return 0;
 }
 
-// A7           jni imm24
+// A7           jni imm32
 U8 JNIa(GC* gc) {
   if (!IF(gc->PS)) {
     gc->EPC = Read32(gc, gc->EPC+2);
@@ -575,7 +575,7 @@ U8 JNIa(GC* gc) {
   return 0;
 }
 
-// A8           re imm24
+// A8           re imm32
 U8 RE(GC* gc) {
   if (ZF(gc->PS)) {
     gc->EPC = StackPop(gc);
@@ -585,7 +585,7 @@ U8 RE(GC* gc) {
   return 0;
 }
 
-// A9           rne imm24
+// A9           rne imm32
 U8 RNE(GC* gc) {
   if (!ZF(gc->PS)) {
     gc->EPC = StackPop(gc);
@@ -594,7 +594,7 @@ U8 RNE(GC* gc) {
   return 0;
 }
 
-// AA           rc imm24
+// AA           rc imm32
 U8 RC(GC* gc) {
   if (CF(gc->PS)) {
     gc->EPC = StackPop(gc);
@@ -604,7 +604,7 @@ U8 RC(GC* gc) {
   return 0;
 }
 
-// AB           rnc imm24
+// AB           rnc imm32
 U8 RNC(GC* gc) {
   if (!CF(gc->PS)) {
     gc->EPC = StackPop(gc);
@@ -613,7 +613,7 @@ U8 RNC(GC* gc) {
   return 0;
 }
 
-// AC           rs imm24
+// AC           rs imm32
 U8 RS(GC* gc) {
   if (!NF(gc->PS)) {
     gc->EPC = StackPop(gc);
@@ -622,7 +622,7 @@ U8 RS(GC* gc) {
   return 0;
 }
 
-// AD           rn imm24
+// AD           rn imm32
 U8 RN(GC* gc) {
   if (NF(gc->PS)) {
     gc->EPC = StackPop(gc);
@@ -632,7 +632,7 @@ U8 RN(GC* gc) {
   return 0;
 }
 
-// AE           ri imm24
+// AE           ri imm32
 U8 RI(GC* gc) {
   if (IF(gc->PS)) {
     gc->EPC = StackPop(gc);
@@ -642,7 +642,7 @@ U8 RI(GC* gc) {
   return 0;
 }
 
-// AF           rni imm24
+// AF           rni imm32
 U8 RNI(GC* gc) {
   if (!IF(gc->PS)) {
     gc->EPC = StackPop(gc);
@@ -651,7 +651,7 @@ U8 RNI(GC* gc) {
   return 0;
 }
 
-// B0           push imm24
+// B0           push imm32
 U8 PUSHi(GC* gc) {
   StackPush(gc, Read32(gc, gc->EPC+2));
   gc->EPC += 6;
@@ -672,7 +672,7 @@ U8 POPr(GC* gc) {
   return 0;
 }
 
-// B8           loop imm24
+// B8           loop imm32
 U8 LOOPa(GC* gc) {
   if (gc->reg[ECX]) {
     gc->reg[ECX]--;
@@ -720,7 +720,7 @@ U8 POWrc(GC* gc) {
   return 0;
 }
 
-// C0-C7        mov reg imm24
+// C0-C7        mov reg imm32
 U8 MOVri(GC* gc) {
   gc->reg[gc->mem[gc->EPC+1] % 32] = Read32(gc, gc->EPC+2);
   gc->EPC += 6;
@@ -760,31 +760,45 @@ U8 DIVrc(GC* gc) {
   return 0;
 }
 
-// D0-D7        mov reg byte[imm24]
+// D0-D7        mov reg byte[imm32]
 U8 MOVrb(GC* gc) {
   gc->reg[gc->mem[gc->EPC+1] % 32] = gc->mem[Read32(gc, gc->EPC+2)];
   gc->EPC += 6;
   return 0;
 }
 
-// D8-DF        mov reg word[imm24]
+// D8-DF        mov reg word[imm32]
 U8 MOVrw(GC* gc) {
   gc->reg[gc->mem[gc->EPC+1] % 32] = ReadWord(gc, Read32(gc, gc->EPC+2));
   gc->EPC += 6;
   return 0;
 }
 
-// E0-E7        mov byte[imm24] reg
+// E0-E7        mov byte[imm32] reg
 U8 MOVbr(GC* gc) {
   gc->mem[Read32(gc, gc->EPC+2)] = gc->reg[gc->mem[gc->EPC+1] % 32];
   gc->EPC += 6;
   return 0;
 }
 
-// E8-EF        mov word[imm24] reg
+// E8-EF        mov word[imm32] reg
 U8 MOVwr(GC* gc) {
   WriteWord(gc, Read32(gc, gc->EPC+2), gc->reg[gc->mem[gc->EPC+1] % 32]);
   gc->EPC += 6;
+  return 0;
+}
+
+// F0           rswp
+U8 RSWP(GC* gc) {
+  U8 regaddr = 0;
+  U8 temp;
+  while (regaddr < 16) {
+    temp = gc->reg[regaddr];
+    gc->reg[regaddr] = gc->reg[regaddr+16];
+    gc->reg[regaddr+16] = temp;
+    regaddr++;
+  }
+  gc->EPC += 2;
   return 0;
 }
 
@@ -793,6 +807,10 @@ U8 MOVwr(GC* gc) {
 U8 PG0F(GC*); // Page 0F - Additional instructions page
 
 // Zero page instructions
+
+
+
+
 U8 (*INSTS[256])() = {
   &HLT  , &TRAP , &UNK  , &STI  , &IRET , &NOP  , &UNK  , &UNK  , &MULri, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
   &SUBri, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &SUBrb, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
@@ -809,8 +827,8 @@ U8 (*INSTS[256])() = {
   &MOVri, &MOVri, &MOVri, &MOVri, &MOVri, &MOVri, &MOVri, &MOVri, &SUBrc, &MULrc, &DIVrc, &UNK  , &UNK  , &UNK  , &UNK  , &MOVrc,
   &MOVrb, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &MOVrw, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
   &MOVbr, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &MOVwr, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
-  &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK
-};
+  &RSWP , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK
+/*INSTS_END*/};
 
 U8 (*INSTS_PG0F[256])() = {
   &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
@@ -843,6 +861,9 @@ U0 Reset(GC* gc) {
     gc->reg[i] = 0x00000000;
   gc->reg[ESP] = 0x00FEFFFF;
   gc->reg[EBP] = 0x00FEFFFF;
+  // Adjust ESP+/EBP+ extra registers
+  gc->reg[R22] = 0x00FEFFFF;
+  gc->reg[R23] = 0x00FEFFFF;
 
   gc->PS = 0b01000000;
 }

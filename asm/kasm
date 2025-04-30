@@ -41,9 +41,19 @@ KEY2   = [
   "re", "rne", "rc", "rnc", "rs", "rn", "ri", "rni", "push",
   "stob", "stow", "stoh", "mul", "div", "sub", "loop", "pop",
   "ldds", "lddg", "stds", "stdg", "sti", "iret", "pow", "and",
-  "ora", "xor", "sal", "sar"
+  "ora", "xor", "sal", "sar", "rswp"
 ];
-KEYR   = ["eax", "ebx", "ecx", "edx", "esi", "egi", "esp", "ebp"];
+KEYR   = {
+  "eax": 0x00, "ebx": 0x01, "ecx": 0x02, "edx": 0x03, "esi": 0x04, "egi": 0x05, "esp": 0x06, "ebp": 0x07,
+  "e8": 0x08,  "e9": 0x09,  "e10": 0x0A, "e11": 0x0B, "e12": 0x0C, "e13": 0x0D, "e14": 0x0E, "e15": 0x0F,
+  "e16": 0x10, "e17": 0x11, "e18": 0x12, "e19": 0x13, "e20": 0x14, "e21": 0x15, "e22": 0x16, "e23": 0x17,
+  "e24": 0x18, "e25": 0x19, "e26": 0x1A, "e27": 0x1B, "e28": 0x1C, "e29": 0x1D, "e30": 0x1E, "e31": 0x1F,
+
+  "r0": 0x00,  "r1": 0x01,  "r2": 0x02,  "r3": 0x03,  "r4": 0x04,  "r5": 0x05,  "r6": 0x06,  "r7": 0x07,
+  "r8": 0x08,  "r9": 0x09,  "r10": 0x0A, "r11": 0x0B, "r12": 0x0C, "r13": 0x0D, "r14": 0x0E, "r15": 0x0F,
+  "r16": 0x10, "r17": 0x11, "r18": 0x12, "r19": 0x13, "r20": 0x14, "r21": 0x15, "r22": 0x16, "r23": 0x17,
+  "r24": 0x18, "r25": 0x19, "r26": 0x1A, "r27": 0x1B, "r28": 0x1C, "r29": 0x1D, "r30": 0x1E, "r31": 0x1F
+};
 
 def PrintTokens(toks: list):
   for i,j in enumerate(toks):
@@ -136,12 +146,12 @@ def Lex(prog: str, filename: str):
       buf = "";
     elif (prog[pos] in "%"):
       pos += 1;
-      while (prog[pos] in LET):
+      while (prog[pos] in LETEXT):
         buf += prog[pos];
         pos += 1;
       pos += 1;
       if (buf in KEYR):
-        toks.append((T_REG, KEYR.index(buf)));
+        toks.append((T_REG, KEYR[buf]));
       else:
         print(f"kasm: {filename}:{linenum}:1: Unknown register {buf}");
         exit(1);
@@ -303,6 +313,7 @@ ParseInst = lambda toks, b, pos, pc: \
    (ASTINS, "MOVra", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 6) if ((b == "mov") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_ID)) else
    (ASTINS, "INT8",  toks[pos+1][1], pos + 2, pc + 2)                   if ((b == "int") and (toks[pos+1][0] == T_INT)) else
    (ASTINS, "POPr",  toks[pos+1][1], pos + 2, pc + 2)                   if ((b == "pop") and (toks[pos+1][0] == T_REG)) else
+   (ASTINS, "RSWP",  0, pos + 1, pc + 2)                                if (b == "rswp") else
    (ASTINS, "HLT",   0, pos + 1, pc + 2)                                if (b == "hlt") else
    (ASTINS, "ADDri", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 6) if ((b == "add") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_INT)) else
    (ASTINS, "ADDrc", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "add") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
@@ -343,10 +354,10 @@ ParseInst = lambda toks, b, pos, pc: \
    (ASTINS, "CMPri", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 6) if ((b == "cmp") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_INT)) else
    (ASTINS, "LODBc", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "lodb") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
    (ASTINS, "LODWc", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "lodw") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
-   (ASTINS, "LODHc", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "lodh") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
+   (ASTINS, "LODDc", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "lodd") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
    (ASTINS, "STOBc", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "stob") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
    (ASTINS, "STOWc", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "stow") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
-   (ASTINS, "STOHc", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "stoh") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
+   (ASTINS, "STODc", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "stod") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
    (ASTINS, "CMPrc", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "cmp") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
    (ASTINS, "TRAP", None, pos + 1, pc + 2) if (b == "trap") else
    (ASTINS, "RET", None, pos + 2, pc + 2)                     if (b == "ret") else
@@ -464,6 +475,7 @@ CompileInst = lambda prog, b, labels, pos: \
    ((0x41, b[2]), pos+1)                            if (b[1] == "INT8") else
    ((0xB6, b[2]), pos+1)                            if (b[1] == "POPr") else
    ((0x00,0x00), pos+1)                             if (b[1] == "HLT") else
+   ((0xF0,0x00), pos+1)                             if (b[1] == "RSWP") else
    ((0x05,0x20), pos+1)                             if (b[1] == "NOP") else
    ((0x48, b[2][0], *As32(b[2][1])), pos+1)         if (b[1] == "ADDri") else
    ((0x47, (b[2][0]<<4)+b[2][1]), pos+1)            if (b[1] == "ADDrc") else
@@ -501,10 +513,10 @@ CompileInst = lambda prog, b, labels, pos: \
    ((0x37, (b[2][0]<<4)+b[2][1]), pos+1)            if (b[1] == "CMPrc") else
    ((0x7F, (b[2][0]<<4)+b[2][1]), pos+1)            if (b[1] == "LODBc") else
    ((0x8F, (b[2][0]<<4)+b[2][1]), pos+1)            if (b[1] == "LODWc") else
-   ((0x9F, (b[2][0]<<4)+b[2][1]), pos+1)            if (b[1] == "LODHc") else
+   ((0x9F, (b[2][0]<<4)+b[2][1]), pos+1)            if (b[1] == "LODDc") else
    ((0x7E, (b[2][0]<<4)+b[2][1]), pos+1)            if (b[1] == "STOBc") else
    ((0x8E, (b[2][0]<<4)+b[2][1]), pos+1)            if (b[1] == "STOWc") else
-   ((0x9E, (b[2][0]<<4)+b[2][1]), pos+1)            if (b[1] == "STOHc") else
+   ((0x9E, (b[2][0]<<4)+b[2][1]), pos+1)            if (b[1] == "STODc") else
    ((0x01,0x00), pos+1)                             if (b[1] == "TRAP") else
    ((0x79,0x00), pos+1)                             if (b[1] == "RET") else
    ((0xA8,0x00), pos+1)                             if (b[1] == "RE") else

@@ -477,9 +477,9 @@ com_echo:    bytes "echo "
 com_exit:    bytes "exit^@"
 hai_world:   bytes "hai world :3$^@"
 
-env_HOST:    bytes "GovnPC 24 Super Edition^@"
-env_OS:      bytes "GovnOS 0.3.1 For GovnoCore24^@"
-env_CPU:     bytes "Govno Core 24$^@"
+env_HOST:    bytes "GovnPC 32 Ultra Edition^@"
+env_OS:      bytes "GovnOS 0.6.0 For GovnoCore32^@"
+env_CPU:     bytes "Govno Core 32 Real$^@"
 
 ; TODO: unhardcode file header TODO: remove this todo
 com_predefined_file_header: bytes "^Afile.bin^@^@^@^@com^@"
