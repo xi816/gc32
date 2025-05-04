@@ -1,5 +1,6 @@
 #include <time.h>
 #include <math.h>
+#include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -50,6 +51,7 @@ U8 main(I32 argc, I8** argv) {
   U8 climode = 0;
   U8 disasmmode = 0;
   U8 verbosemode = 0;
+  U8 scale = 1;
   U8 argp = 1; // 256 arguments is enough for everyone
   U8* filename = NULL;
   U8* biosfile = NULL;
@@ -87,6 +89,10 @@ U8 main(I32 argc, I8** argv) {
     else if ((!strcmp(argv[argp], "disasm")) || (!strcmp(argv[argp], "-D")) || (!strcmp(argv[argp], "--disasm"))) {
       disasmmode = 1;
       argp++;
+    }
+    else if ((!strcmp(argv[argp], "scale")) || (!strcmp(argv[argp], "-s")) || (!strcmp(argv[argp], "--scale"))) {
+      scale = atoi(argv[argp+1]);
+      argp += 2;
     }
     else {
       filename = argv[argp];
@@ -156,7 +162,7 @@ U8 main(I32 argc, I8** argv) {
   // GPU
   gravno_start;
   gc.renderer = renderer;
-  GGinit(&(gc.gg), renderer);
+  GGinit(&(gc.gg), renderer, scale);
 
   int runcode = 0xFF;
   tcsetattr(STDIN_FILENO, TCSANOW, &oldt);

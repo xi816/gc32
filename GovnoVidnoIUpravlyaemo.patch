@@ -1,0 +1,343 @@
+diff --git a/core/main.c b/core/main.c
+index 1832299..5bf4681 100644
+--- a/core/main.c
++++ b/core/main.c
+@@ -7,6 +7,7 @@
+ #include <string.h>
+ #include <stdbool.h>
+ #include <termios.h>
++#include <poll.h>
+ 
+ #include <sterm-control.h>
+ new_st;
+@@ -50,6 +51,7 @@ U8 main(I32 argc, I8** argv) {
+   U8 climode = 0;
+   U8 disasmmode = 0;
+   U8 verbosemode = 0;
++  U8 scale = 1;
+   U8 argp = 1; // 256 arguments is enough for everyone
+   U8* filename = NULL;
+   U8* biosfile = NULL;
+@@ -88,6 +90,10 @@ U8 main(I32 argc, I8** argv) {
+       disasmmode = 1;
+       argp++;
+     }
++    else if ((!strcmp(argv[argp], "scale")) || (!strcmp(argv[argp], "-s")) || (!strcmp(argv[argp], "--scale"))) {
++      scale = atoi(argv[argp+1]);
++      argp += 2;
++    }
+     else {
+       filename = argv[argp];
+       break;
+@@ -156,7 +162,7 @@ U8 main(I32 argc, I8** argv) {
+   // GPU
+   gravno_start;
+   gc.renderer = renderer;
+-  GGinit(&(gc.gg), renderer);
++  GGinit(&(gc.gg), renderer, scale);
+ 
+   int runcode = 0xFF;
+   tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+diff --git a/fun/paint.asm b/fun/paint.asm
+index d136f82..2585073 100644
+--- a/fun/paint.asm
++++ b/fun/paint.asm
+@@ -2,40 +2,40 @@
+ 
+   jmp main
+ draw:
+-  mov %si x
+-  lodw %si %ax
+-  mov %bx y
+-  lodw %bx %si
+-  mul %si 640
+-  add %si %ax
+-  add %si $400000
+-  stob %si %dx
++  mov %esi x
++  lodw %esi %eax
++  mov %ebx y
++  lodw %ebx %esi
++  mul %esi 640
++  add %esi %eax
++  add %esi $400000
++  stob %esi %edx
+   ret
+ main:
+-  mov %ax $43
+-  mov #450000 %ax
++  mov %eax $43
++  mov #450000 %eax
+   int $12
+ .l:
+   int 1
+-  pop %ax
+-  push %ax
+-  mov %si color
+-  lodb %si %dx
++  pop %eax
++  push %eax
++  mov %esi color
++  lodb %esi %edx
+   call draw
+-  pop %ax
+-  cmp %ax 'a'
++  pop %eax
++  cmp %eax 'a'
+   je .left
+-  cmp %ax 'd'
++  cmp %eax 'd'
+   je .right
+-  cmp %ax 'w'
++  cmp %eax 'w'
+   je .up
+-  cmp %ax 's'
++  cmp %eax 's'
+   je .down
+-  cmp %ax 'x'
++  cmp %eax 'x'
+   je .colorx
+-  cmp %ax 'c'
++  cmp %eax 'c'
+   je .colorc
+-  cmp %ax 'q'
++  cmp %eax 'q'
+   je term
+   jmp render
+ .left:
+@@ -58,16 +58,16 @@ main:
+   jmp render.panel
+ 
+ render:
+-  mov %dx $00
++  mov %edx $00
+   call draw
+   jmp .end
+ .panel:
+-  mov %si color
+-  lodb %si %ax
+-  mov %si $447E00
+-  mov %cx 12800
++  mov %esi color
++  lodb %esi %eax
++  mov %esi $447E00
++  mov %ecx 12800
+ .l1:
+-  stob %si %ax
++  stob %esi %eax
+   loop .l1
+ .end:
+   int $11
+diff --git a/fun/paint2.asm b/fun/paint2.asm
+new file mode 100644
+index 0000000..be4ced7
+--- /dev/null
++++ b/fun/paint2.asm
+@@ -0,0 +1,53 @@
++loop: ._:
++; Check key state
++    mov %eax $480005
++    mov %ecx 5
++.kbdloop:
++    lodb %eax %edx
++    cmp %edx 0
++    jne .noCur
++    loop .kbdloop
++; Hehe
++.check_serial:
++    int $9
++    cmp %edx 0
++    jne .popi
++; Clear old cursor
++    mov %eax old_cur_pos
++    lodw %eax %ebx
++    lodw %eax %ecx
++    mov %egi nul
++    call spr
++
++    mov %eax $480000
++    lodw %eax %ebx
++    lodw %eax %ecx
++    ; lodb %eax %edx - Mouse state
++    mov %egi cursor
++    call spr
++    mov %esi old_cur_pos
++    stow %esi %ebx
++    stow %esi %ecx
++.noCur:
++    int $11
++    mov %edx 8
++    int $22
++    jmp ._
++.popi:
++    int $1
++    pop %edx
++    jmp .check_serial
++
++spr:
++    mov %esi %ecx
++    mul %esi 640
++    add %esi %ebx
++    add %esi $400000
++    int $13
++    ret
++
++old_cur_pos: reserve 4 bytes
++cursor:
++    bytes $FF $FF $00 $00 $00 $00 $00 $00 $FF $00 $FF $00 $00 $00 $00 $00 $FF $00 $00 $FF $00 $00 $00 $00 $FF $00 $00 $00 $FF $00 $00 $00 $FF $00 $00 $00 $00 $FF $00 $00 $FF $00 $00 $00 $FF $FF $00 $00 $FF $00 $FF $00 $FF $00 $00 $00 $FF $FF $FF $00 $FF $00 $00 $00
++
++nul:
+diff --git a/lib/cpu32/cpu32.h b/lib/cpu32/cpu32.h
+index 0b845b8..017cf1a 100644
+--- a/lib/cpu32/cpu32.h
++++ b/lib/cpu32/cpu32.h
+@@ -1,6 +1,7 @@
+ // CPU identificator: GC32
+ #include <cpu32/proc/std.h>
+ #include <cpu32/proc/interrupts.h>
++#include <cpu32/hid.h>
+ #include <cpu32/gpu.h>
+ #include <cpu32/spu.h>
+ 
+@@ -293,6 +294,14 @@ U8 INT(GC* gc) {
+   case INT_RESET:
+     Reset(gc);
+     return 0;
++  case INT_CANREAD:
++      struct pollfd pfds[1];
++      pfds[0].fd = fileno(stdin);
++      pfds[0].events = POLLIN;
++      pfds[0].revents = 0;
++      poll(&pfds[0], 1, 0);
++      gc->reg[EDX] = pfds[0].revents & POLLIN ? 1 : 0;
++      break;
+   case INT_VIDEO_FLUSH:
+     GGpage(gc);
+     break;
+@@ -313,6 +322,10 @@ U8 INT(GC* gc) {
+     break;
+   case INT_WAIT:
+     usleep((U32)(gc->reg[EDX])*1000); // the maximum is about 65.5 seconds
++    if(hid_events(gc)) {
++      gc_errno = 0;
++      return 1;
++    }
+     break;
+   case INT_BEEP:
+     double freq = (double)StackPop(gc);
+diff --git a/lib/cpu32/gpu.h b/lib/cpu32/gpu.h
+index 160ff8b..69a3d99 100644
+--- a/lib/cpu32/gpu.h
++++ b/lib/cpu32/gpu.h
+@@ -41,8 +41,9 @@ enum ggcolors {
+   EWHITE   = 15,
+ };
+ 
+-U0 GGinit(gc_gg16* gg, SDL_Renderer* r) {
++U0 GGinit(gc_gg16* gg, SDL_Renderer* r, U8 scale) {
+   gg->status = 0b00000000;
++  gg->scale = scale;
+   SDL_SetRenderDrawColor(r, 0, 0, 0, 255);
+   SDL_RenderClear(r);
+ }
+diff --git a/lib/cpu32/gpuh.h b/lib/cpu32/gpuh.h
+index 42f3291..1744f36 100644
+--- a/lib/cpu32/gpuh.h
++++ b/lib/cpu32/gpuh.h
+@@ -10,9 +10,10 @@
+ #define gravno_start \
+   SDL_Init(SDL_INIT_EVERYTHING); \
+   SDL_Window* WIN = SDL_CreateWindow( \
+-      "Gravno Display", 500, 100, WINW, WINH, SDL_WINDOW_SHOWN); \
++      "Gravno Display", 500, 100, WINW * scale, WINH * scale, SDL_WINDOW_SHOWN); \
+   SDL_Renderer* renderer = SDL_CreateRenderer( \
+-      WIN, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
++      WIN, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);\
++  SDL_RenderSetScale(renderer, scale, scale);
+ 
+ #define gravno_end \
+   SDL_DestroyRenderer(renderer); \
+@@ -21,6 +22,7 @@
+ 
+ struct gc_gg16 {
+   U8 status; // besplatno
++  U8 scale; // platno
+ };
+ typedef struct gc_gg16 gc_gg16;
+ 
+diff --git a/lib/cpu32/hid.h b/lib/cpu32/hid.h
+new file mode 100644
+index 0000000..94c9ad6
+--- /dev/null
++++ b/lib/cpu32/hid.h
+@@ -0,0 +1,58 @@
++#define HID_ADDR 0x480000
++// todo: cpu32h?
++U0 WriteWord(GC* gc, U32 addr, U16 val);
++U0 move_mouse(GC* gc, U16 x, U16 y) {
++    WriteWord(gc, HID_ADDR, x);
++    WriteWord(gc, HID_ADDR + 2, y);
++}
++U0 mouse_btn(GC* gc, U8 id, U8 val) {
++    U8 flag = gc->mem[HID_ADDR + 4];
++    if (val) {
++        flag |= 1 << id;
++    } else {
++        flag &= ~(1 << id);
++    }
++    gc->mem[HID_ADDR + 4] = flag;
++}
++// Keyboard is basically an api for USB-HID
++// https://wiki.libsdl.org/SDL2/SDL_Scancode
++#define MAX_KEYS 6
++U0 kbd_btn(GC* gc, U16 id, U8 val) {
++  if (val) {
++    for (U8 i = 0; i < MAX_KEYS; i++) {
++      if (gc->mem[HID_ADDR + 5 + i] == 0) {
++        gc->mem[HID_ADDR + 5 + i] = id;
++        return;
++      }
++    }
++  } else {
++    for (U8 i = 0; i < MAX_KEYS; i++) {
++      if (gc->mem[HID_ADDR + 5 + i] == id) {
++        gc->mem[HID_ADDR + 5 + i] = 0;
++        return;
++      }
++    }
++  }
++}
++U8 hid_events(GC* gc) {
++  SDL_Event event;
++  while (SDL_PollEvent(&event)) {
++    switch(event.type) {
++      case SDL_QUIT:
++        return 1;
++      case SDL_MOUSEMOTION:
++        move_mouse(gc, event.motion.x / gc->gg.scale, event.motion.y / gc->gg.scale);
++        break;
++      case SDL_MOUSEBUTTONDOWN:
++      case SDL_MOUSEBUTTONUP:
++        mouse_btn(gc, event.button.button, event.type == SDL_MOUSEBUTTONDOWN);
++        break;
++      case SDL_KEYDOWN:
++      case SDL_KEYUP:
++        if (!event.key.repeat)
++          kbd_btn(gc, event.key.keysym.scancode, event.type == SDL_KEYDOWN);
++        break;
++    }
++  }
++  return 0;
++}
+diff --git a/lib/cpu32/proc/interrupts.h b/lib/cpu32/proc/interrupts.h
+index 47496bd..e6dc9d5 100644
+--- a/lib/cpu32/proc/interrupts.h
++++ b/lib/cpu32/proc/interrupts.h
+@@ -4,6 +4,7 @@
+ #define INT_WRITE        0x02 // write char from stack
+ #define INT_DATE         0x03 // get date to dx register
+ #define INT_RESET        0x04 // reset the CPU
++#define INT_CANREAD      0x09 // set edx to 1 if can read now, 0 otherwise
+ 
+ // Videobuffer
+ #define INT_VIDEO_FLUSH  0x11 // flush the videobuffer

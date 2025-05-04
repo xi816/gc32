@@ -4,6 +4,7 @@
 #define INT_WRITE        0x02 // write char from stack
 #define INT_DATE         0x03 // get date to dx register
 #define INT_RESET        0x04 // reset the CPU
+#define INT_CANREAD      0x09 // set edx to 1 if can read now, 0 otherwise
 
 // Videobuffer
 #define INT_VIDEO_FLUSH  0x11 // flush the videobuffer

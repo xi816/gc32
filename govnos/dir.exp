@@ -1,0 +1,9 @@
+dir_main	200000
+dir_main.loop	200058
+dir_main.print	200086
+dir_main.notyourtime	20011E
+dir_msg00	20012C
+dir_msg01	20013D
+dir_msg02	20015A
+header	20015D
+hcom	20016C

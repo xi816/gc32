@@ -41,8 +41,9 @@ enum ggcolors {
   EWHITE   = 15,
 };
 
-U0 GGinit(gc_gg16* gg, SDL_Renderer* r) {
+U0 GGinit(gc_gg16* gg, SDL_Renderer* r, U8 scale) {
   gg->status = 0b00000000;
+  gg->scale = scale;
   SDL_SetRenderDrawColor(r, 0, 0, 0, 255);
   SDL_RenderClear(r);
 }

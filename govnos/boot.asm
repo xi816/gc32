@@ -363,6 +363,28 @@ shell:
   cmp %eax $00
   je govnos_help
 
+  ; MAGIC CODE BEGIN
+  ; trap
+  mov %esi command
+  mov %eax $20
+  call b_strtok
+  dex %esi
+  mov %eax $00
+  stob %esi %eax
+  ; trap
+
+  mov %esi command
+  mov %eax $00
+  call b_strtok
+  dex %esi
+  mov %eax $0020
+  stow %esi %eax
+  ; trap
+
+  ; MAGIC CODE END
+  ; fuck you string manipulation :]
+
+  mov %esi command
   mov %esi file_header
   mov %ecx 16
   call b_memset
@@ -383,6 +405,9 @@ shell:
   je .call
   jmp .bad
 .call:
+  ; trap
+
+  mov %r12 command ; Pass a pointer to command-line arguments via %r12
   call $200000
   jmp .aftexec
 .bad:

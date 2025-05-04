@@ -10,9 +10,10 @@
 #define gravno_start \
   SDL_Init(SDL_INIT_EVERYTHING); \
   SDL_Window* WIN = SDL_CreateWindow( \
-      "Gravno Display", 500, 100, WINW, WINH, SDL_WINDOW_SHOWN); \
+      "Gravno Display", 500, 100, WINW * scale, WINH * scale, SDL_WINDOW_SHOWN); \
   SDL_Renderer* renderer = SDL_CreateRenderer( \
-      WIN, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+      WIN, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);\
+  SDL_RenderSetScale(renderer, scale, scale);
 
 #define gravno_end \
   SDL_DestroyRenderer(renderer); \
@@ -21,6 +22,7 @@
 
 struct gc_gg16 {
   U8 status; // besplatno
+  U8 scale; // platno
 };
 typedef struct gc_gg16 gc_gg16;
 

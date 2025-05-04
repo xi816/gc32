@@ -2,40 +2,40 @@
 
   jmp main
 draw:
-  mov %si x
-  lodw %si %ax
-  mov %bx y
-  lodw %bx %si
-  mul %si 640
-  add %si %ax
-  add %si $400000
-  stob %si %dx
+  mov %esi x
+  lodw %esi %eax
+  mov %ebx y
+  lodw %ebx %esi
+  mul %esi 640
+  add %esi %eax
+  add %esi $400000
+  stob %esi %edx
   ret
 main:
-  mov %ax $43
-  mov #450000 %ax
+  mov %eax $43
+  mov #450000 %eax
   int $12
 .l:
   int 1
-  pop %ax
-  push %ax
-  mov %si color
-  lodb %si %dx
+  pop %eax
+  push %eax
+  mov %esi color
+  lodb %esi %edx
   call draw
-  pop %ax
-  cmp %ax 'a'
+  pop %eax
+  cmp %eax 'a'
   je .left
-  cmp %ax 'd'
+  cmp %eax 'd'
   je .right
-  cmp %ax 'w'
+  cmp %eax 'w'
   je .up
-  cmp %ax 's'
+  cmp %eax 's'
   je .down
-  cmp %ax 'x'
+  cmp %eax 'x'
   je .colorx
-  cmp %ax 'c'
+  cmp %eax 'c'
   je .colorc
-  cmp %ax 'q'
+  cmp %eax 'q'
   je term
   jmp render
 .left:
@@ -58,16 +58,16 @@ main:
   jmp render.panel
 
 render:
-  mov %dx $00
+  mov %edx $00
   call draw
   jmp .end
 .panel:
-  mov %si color
-  lodb %si %ax
-  mov %si $447E00
-  mov %cx 12800
+  mov %esi color
+  lodb %esi %eax
+  mov %esi $447E00
+  mov %ecx 12800
 .l1:
-  stob %si %ax
+  stob %esi %eax
   loop .l1
 .end:
   int $11

@@ -1,6 +1,7 @@
 // CPU identificator: GC32
 #include <cpu32/proc/std.h>
 #include <cpu32/proc/interrupts.h>
+#include <cpu32/hid.h>
 #include <cpu32/gpu.h>
 #include <cpu32/spu.h>
 
@@ -293,6 +294,14 @@ U8 INT(GC* gc) {
   case INT_RESET:
     Reset(gc);
     return 0;
+  case INT_CANREAD:
+      struct pollfd pfds[1];
+      pfds[0].fd = fileno(stdin);
+      pfds[0].events = POLLIN;
+      pfds[0].revents = 0;
+      poll(&pfds[0], 1, 0);
+      gc->reg[EDX] = pfds[0].revents & POLLIN ? 1 : 0;
+      break;
   case INT_VIDEO_FLUSH:
     GGpage(gc);
     break;
@@ -313,6 +322,10 @@ U8 INT(GC* gc) {
     break;
   case INT_WAIT:
     usleep((U32)(gc->reg[EDX])*1000); // the maximum is about 65.5 seconds
+    if(hid_events(gc)) {
+      gc_errno = 0;
+      return 1;
+    }
     break;
   case INT_BEEP:
     double freq = (double)StackPop(gc);
@@ -807,10 +820,6 @@ U8 RSWP(GC* gc) {
 U8 PG0F(GC*); // Page 0F - Additional instructions page
 
 // Zero page instructions
-
-
-
-
 U8 (*INSTS[256])() = {
   &HLT  , &TRAP , &UNK  , &STI  , &IRET , &NOP  , &UNK  , &UNK  , &MULri, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
   &SUBri, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &SUBrb, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
@@ -824,7 +833,7 @@ U8 (*INSTS[256])() = {
   &SUBrw, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &STODc, &LODDc,
   &JEa  , &JNEa , &JCa  , &JNCa , &JSa  , &JNa  , &JIa  , &JNIa , &RE   , &RNE  , &RC   , &RNC  , &RS   , &RN   , &RI   , &RNI  ,
   &PUSHi, &UNK  , &UNK  , &UNK  , &UNK  , &PUSHr, &POPr , &UNK  , &LOOPa, &LDDS , &LDDG , &STDS , &STDG , &UNK  , &UNK  , &POWrc,
-  &MOVri, &MOVri, &MOVri, &MOVri, &MOVri, &MOVri, &MOVri, &MOVri, &SUBrc, &MULrc, &DIVrc, &UNK  , &UNK  , &UNK  , &UNK  , &MOVrc,
+  &MOVri, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &SUBrc, &MULrc, &DIVrc, &UNK  , &UNK  , &UNK  , &UNK  , &MOVrc,
   &MOVrb, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &MOVrw, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
   &MOVbr, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &MOVwr, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
   &RSWP , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK
@@ -903,6 +912,7 @@ U8 Exec(GC* gc, const U32 memsize, U8 verbosemode) {
   U8 exc = 0;
   U8 step = 0;
   U32 insts = 0;
+  SDL_ShowCursor(SDL_DISABLE);
   execloop:
     exc = (INSTS[gc->mem[gc->EPC]])(gc);
     insts++;

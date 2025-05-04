@@ -43,6 +43,12 @@ puti_clr:
   ret
 puti_buf: reserve 8 bytes
 
+strtok:
+  lodb %esi %eax
+  cmp %eax %ecx
+  re
+  jmp strtok
+
 ; strcmp -- Compare two strings
 ; Arguments:
 ;   si -- string 1
@@ -155,6 +161,21 @@ memsub:
   dex %esi
   stob %esi %edx
   loop .loop
+  ret
+
+memcmp:
+  dex %ecx
+.loop:
+  lodb %esi %eax
+  lodb %egi %ebx
+  cmp %eax %ebx
+  jne .fail
+  loop .loop
+.eq:
+  mov %eax $00
+  ret
+.fail:
+  mov %eax $01
   ret
 
 ; dmemcpy -- Load n bytes from disk to memory
