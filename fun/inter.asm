@@ -38,11 +38,11 @@ aloop: ._:
     cmp %edx 0
     jne .popi
 ; Clear old cursor
-    ; mov %eax old_cur_pos
-    ; lodw %eax %ebx
-    ; lodw %eax %ecx
-    ; mov %egi nul
-    ; call spr
+    mov %eax old_cur_pos
+    lodw %eax %ebx
+    lodw %eax %ecx
+    mov %egi nul
+    call spr
 
     mov %eax $480000
     lodw %eax %ebx
@@ -73,24 +73,14 @@ spr:
 
 old_cur_pos: reserve 4 bytes
 cursor:
-  bytes $FF $FF $FF $FF $FF $FF $FF $FF
-  bytes $FF $FF $FF $FF $FF $FF $FF $FF
-  bytes $FF $FF $FF $FF $FF $FF $FF $FF
-  bytes $FF $FF $FF $FF $FF $FF $FF $FF
-  bytes $FF $FF $FF $FF $FF $FF $FF $FF
-  bytes $FF $FF $FF $FF $FF $FF $FF $FF
-  bytes $FF $FF $FF $FF $FF $FF $FF $FF
-  bytes $FF $FF $FF $FF $FF $FF $FF $FF
-
-; cursor:
-;   bytes $FF $FF $FF $FF $00 $00 $00 $00
-;   bytes $FF $FF $00 $00 $00 $00 $00 $00
-;   bytes $FF $00 $FF $00 $00 $00 $00 $00
-;   bytes $FF $00 $00 $FF $00 $00 $00 $00
-;   bytes $00 $00 $00 $00 $FF $00 $00 $00
-;   bytes $00 $00 $00 $00 $00 $FF $00 $00
-;   bytes $00 $00 $00 $00 $00 $00 $FF $00
-;   bytes $00 $00 $00 $00 $00 $00 $00 $FF
+  bytes $FF $FF $FF $FF $00 $00 $00 $00
+  bytes $FF $FF $00 $00 $00 $00 $00 $00
+  bytes $FF $00 $FF $00 $00 $00 $00 $00
+  bytes $FF $00 $00 $FF $00 $00 $00 $00
+  bytes $00 $00 $00 $00 $FF $00 $00 $00
+  bytes $00 $00 $00 $00 $00 $FF $00 $00
+  bytes $00 $00 $00 $00 $00 $00 $FF $00
+  bytes $00 $00 $00 $00 $00 $00 $00 $FF
 
 ; cursor:
 ;   bytes $FF $FF $00 $00 $00 $00 $00 $00
