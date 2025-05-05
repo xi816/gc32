@@ -43,6 +43,11 @@ int32_t main(int argc, char** argv) {
       printf("removing %s%s%s\n", color, targets[i], rcolor);
       system(clean_commands[i]);
     }
+    puts("removing .bin files...");
+    system("find . -name \"*.bin\" | xargs rm -f");
+    puts("removing .exp files...");
+    system("find . -name \"*.exp\" | xargs rm -f");
+    puts("done!");
     return 0;
   }
   else {
