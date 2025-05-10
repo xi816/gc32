@@ -11,6 +11,7 @@
 #define INT_VIDEO_CLEAR  0x12 // clear the videobuffer
 #define INT_PPU_DRAW     0x13 // draw a 256-color palette sprite to videobuffer
 #define INT_PPU_DRAWM    0x14 // draw a 2-color palette sprite to videobuffer
+#define INT_PPU_READ     0x15 // read a 256-color palette sprite from videobuffer
 
 #define INT_RAND         0x21 // get random number to dx
 #define INT_WAIT         0x22 // wait dx milliseconds

@@ -2,32 +2,35 @@
 reboot: jmp boot
 
 b_scans:
+  mov %e8 $00
+.loop:
   int 1
   pop %eax
   cmp %eax $7F
   je .back
   cmp %eax $1B
-  je b_scans
+  je b_scans.loop
   push %eax
   int 2
   cmp %eax $0A
   je .end
   stob %esi %eax
   inx @clen
-  jmp b_scans
+  jmp b_scans.loop
 .back:
   mov %egi clen
   lodw %egi %eax
   cmp %eax $00
-  je b_scans
+  je b_scans.loop
 .back_strict:
   push %esi
   mov %esi bs_seq
   int $81
   pop %esi
-  dex %esi
+  stob %esi %e8
+  sub %esi 2
   dex @clen
-  jmp b_scans
+  jmp b_scans.loop
 .end:
   mov %eax $00
   stob %esi %eax
@@ -320,21 +323,26 @@ shell:
   stow %esi %eax
   mov %esi command
   call b_scans
+  dex %esi
+  mov %eax $0020
+  stow %esi %eax
 .process:
   mov %esi command
-  call b_strnul
-  cmp %eax $00
+  lodw %esi %eax
+  cmp %eax $0020
   je .aftexec
 
   mov %esi command
   mov %egi com_hi
-  call b_strcmp
+  mov %ecx ' '
+  call b_pstrcmp
   cmp %eax $00
   je govnos_hi
 
   mov %esi command
   mov %egi com_date
-  call b_strcmp
+  mov %ecx ' '
+  call b_pstrcmp
   cmp %eax $00
   je govnos_date
 
@@ -347,44 +355,44 @@ shell:
 
   mov %esi command
   mov %egi com_exit
-  call b_strcmp
+  mov %ecx ' '
+  call b_pstrcmp
   cmp %eax $00
   je govnos_exit
 
   mov %esi command
   mov %egi com_cls
-  call b_strcmp
+  mov %ecx ' '
+  call b_pstrcmp
   cmp %eax $00
   je govnos_cls
 
   mov %esi command
   mov %egi com_help
-  call b_strcmp
+  mov %ecx ' '
+  call b_pstrcmp
   cmp %eax $00
   je govnos_help
 
   ; MAGIC CODE BEGIN
-  ; trap
   mov %esi command
   mov %eax $20
   call b_strtok
   dex %esi
   mov %eax $00
   stob %esi %eax
-  ; trap
 
-  mov %esi command
-  mov %eax $00
-  call b_strtok
-  dex %esi
-  mov %eax $0020
-  stow %esi %eax
-  ; trap
+  ; mov %esi command
+  ; mov %eax $00
+  ; call b_strtok
+  ; dex %esi
+  ; mov %eax $0020
+  ; stow %esi %eax
 
   ; MAGIC CODE END
   ; fuck you string manipulation :]
 
-  mov %esi command
+  ; mov %esi command
   mov %esi file_header
   mov %ecx 16
   call b_memset
@@ -405,7 +413,6 @@ shell:
   je .call
   jmp .bad
 .call:
-  ; trap
 
   mov %r12 command ; Pass a pointer to command-line arguments via %r12
   call $200000
@@ -413,6 +420,10 @@ shell:
 .bad:
   mov %esi bad_command
   int $81
+  mov %esi command
+  int $81
+  push '$'
+  int $02
 .aftexec:
   jmp .prompt
 govnos_hi:
@@ -481,29 +492,31 @@ welcome_msg:   bytes "Welcome to ^[[92mGovnOS^[[0m$^@"
 krnl_load_msg: bytes "Loading ^[[92m:/krnl.bin/com^[[0m...$^@"
 emp_sec_msg00: bytes "$Disk sectors used: ^[[92m^@"
 emp_sec_msg01: bytes "^[[0m$$^@"
-bad_command:   bytes "Bad command.$^@"
+bad_command:   bytes "Bad command: ^@"
 
-help_msg:    bytes "+------------------------------------------+$"
-             bytes "|GovnOS help page 1/1                      |$"
-             bytes "|  calc        Calculator                  |$"
-             bytes "|  cls         Clear the screen            |$"
-             bytes "|  dir         Show files on the disk      |$"
-             bytes "|  echo        Echo text back to output    |$"
-             bytes "|  exit        Exit from the shell         |$"
-             bytes "|  gsfetch     Show system info            |$"
-             bytes "|  help        Show help                   |$"
-             bytes "+------------------------------------------+$^@"
+help_msg:    bytes "^[[38;5;69m+-------------------------------------------+$"
+             bytes "^[[38;5;69m|^[[96mGovnOS help page 1/1^[[38;5;69m                       |$"
+             bytes "^[[38;5;69m|  ^[[92mcalc        ^[[93mCalculator^[[38;5;69m                   |$"
+             bytes "^[[38;5;69m|  ^[[92mcls         ^[[93mClear the screen^[[38;5;69m             |$"
+             bytes "^[[38;5;69m|  ^[[92mdir         ^[[93mShow files on the disk^[[38;5;69m       |$"
+             bytes "^[[38;5;69m|  ^[[92mdate        ^[[93mShow current date (%Y-%m-%d)^[[38;5;69m |$"
+             bytes "^[[38;5;69m|  ^[[92mecho        ^[[93mEcho text back to output^[[38;5;69m     |$"
+             bytes "^[[38;5;69m|  ^[[92mexit        ^[[93mExit from the shell^[[38;5;69m          |$"
+             bytes "^[[38;5;69m|  ^[[92mgsfetch     ^[[93mShow system info^[[38;5;69m             |$"
+             bytes "^[[38;5;69m|  ^[[92mhelp        ^[[93mShow help^[[38;5;69m                    |$"
+             bytes "^[[38;5;69m|  ^[[92minfo        ^[[93mShow OS release info^[[38;5;69m         |$"
+             bytes "^[[38;5;69m+-------------------------------------------+^[[0m$^@"
 
-com_hi:      bytes "hi^@"
-com_cls:     bytes "cls^@"
-com_date:    bytes "date^@"
-com_help:    bytes "help^@"
+com_hi:      bytes "hi "
+com_cls:     bytes "cls "
+com_date:    bytes "date "
+com_help:    bytes "help "
 com_echo:    bytes "echo "
-com_exit:    bytes "exit^@"
+com_exit:    bytes "exit "
 hai_world:   bytes "hai world :3$^@"
 
 env_HOST:    bytes "GovnPC 32 Ultra Edition^@"
-env_OS:      bytes "GovnOS 0.6.0 For GovnoCore32^@"
+env_OS:      bytes "GovnOS 0.7.0 For GovnoCore32^@"
 env_CPU:     bytes "Govno Core 32 Real$^@"
 
 ; TODO: unhardcode file header TODO: remove this todo
@@ -517,6 +530,6 @@ clen:        reserve 2 bytes
 
 bs_seq:      bytes "^H ^H^@"
 cls_seq:     bytes "^[[H^[[2J^@"
-env_PS:      bytes "# ^@"
+env_PS:      bytes "> ^@"
 
 bse:         bytes $AA $55

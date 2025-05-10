@@ -4,6 +4,7 @@
 #include <cpu32/hid.h>
 #include <cpu32/gpu.h>
 #include <cpu32/spu.h>
+#include <cpu32/fpu.h>
 
 #define BIOSNOBNK 16
 #define BANKSIZE 65536
@@ -152,7 +153,7 @@ U8 TRAP(GC* gc) {
 
 // 03           sti
 U8 STI(GC* gc) {
-  Write32(gc, (((gc->mem[gc->EPC+1]-0x80)*4)+0xFF0000), gc->reg[ESI]);
+  Write32(gc, (((gc->mem[gc->EPC+1]-0x80)*4)+0x2000), gc->reg[ESI]);
   gc->EPC += 2;
   return 0;
 }
@@ -225,8 +226,8 @@ U8 DEXb(GC* gc) {
 // 37           cmp rc
 U8 CMPrc(GC* gc) {
   gcrc_t rc = ReadRegClust(gc->mem[gc->EPC+1]);
-  I16 val0 = gc->reg[rc.x];
-  I16 val1 = gc->reg[rc.y];
+  I32 val0 = gc->reg[rc.x];
+  I32 val1 = gc->reg[rc.y];
 
   if (!(val0 - val1))    SET_ZF(gc->PS);
   else                   RESET_ZF(gc->PS);
@@ -276,7 +277,7 @@ U8 INT(GC* gc) {
   if (gc->mem[gc->EPC+1] >= 0x80) { // Custom interrupt
     StackPush(gc, gc->EPC+2); // Return address
     StackPush(gc, gc->PS); // Flags
-    gc->EPC = Read32(gc, ((gc->mem[gc->EPC+1]-0x80)*4)+0xFF0000);
+    gc->EPC = Read32(gc, ((gc->mem[gc->EPC+1]-0x80)*4)+0x2000);
     return 0;
   }
   switch (gc->mem[gc->EPC+1]) {
@@ -310,6 +311,9 @@ U8 INT(GC* gc) {
     break;
   case INT_PPU_DRAW:
     GGsprite_256(gc);
+    break;
+  case INT_PPU_READ:
+    GGsprite_read_256(gc);
     break;
   case INT_PPU_DRAWM:
     GGsprite_mono(gc);
@@ -356,35 +360,35 @@ U8 ADDrc(GC* gc) {
   return 0;
 }
 
-// 48-4F        add reg imm32
+// 48           add reg imm32
 U8 ADDri(GC* gc) {
   gc->reg[gc->mem[gc->EPC+1] % 32] += Read32(gc, gc->EPC+2);
   gc->EPC += 6;
   return 0;
 }
 
-// 50-57        add reg byte[imm32]
+// 50           add reg byte[imm32]
 U8 ADDrb(GC* gc) {
   gc->reg[gc->mem[gc->EPC+1] % 32] += gc->mem[Read32(gc, gc->EPC+2)];
   gc->EPC += 6;
   return 0;
 }
 
-// 58-5F        mov reg word[imm32]
+// 58           mov reg word[imm32]
 U8 ADDrw(GC* gc) {
   gc->reg[gc->mem[gc->EPC+1] % 32] += ReadWord(gc, Read32(gc, gc->EPC+2));
   gc->EPC += 6;
   return 0;
 }
 
-// 60-67        mov byte[imm32] reg
+// 60           mov byte[imm32] reg
 U8 ADDbr(GC* gc) {
   gc->mem[Read32(gc, gc->EPC+2)] += gc->reg[gc->mem[gc->EPC+1] % 32];
   gc->EPC += 6;
   return 0;
 }
 
-// 68-6F        add word[imm32] reg
+// 68           add word[imm32] reg
 U8 ADDwr(GC* gc) {
   U16 addr = Read32(gc, gc->EPC+2);
   U16 w = ReadWord(gc, addr);
@@ -393,7 +397,7 @@ U8 ADDwr(GC* gc) {
   return 0;
 }
 
-// 70-77        cmp reg imm32
+// 70           cmp reg imm32
 U8 CMPri(GC* gc) {
   I32 val0 = gc->reg[gc->mem[gc->EPC+1] % 32];
   I32 val1 = Read32(gc, gc->EPC+2);
@@ -490,7 +494,7 @@ U8 LODDc(GC* gc) {
   return 0;
 }
 
-// 80-83        div reg imm32
+// 80           div reg imm32
 U8 DIVri(GC* gc) {
   U32 a = Read32(gc, gc->EPC+2);
   U8 r = gc->mem[gc->EPC+1] % 32; // reg
@@ -506,7 +510,7 @@ U8 JMPa(GC* gc) {
   return 0;
 }
 
-// 90-97        sub reg word[imm32]
+// 90           sub reg word[imm32]
 U8 SUBrw(GC* gc) {
   gc->reg[gc->mem[gc->EPC+1] % 32] -= ReadWord(gc, Read32(gc, gc->EPC+2));
   gc->EPC += 6;
@@ -733,7 +737,7 @@ U8 POWrc(GC* gc) {
   return 0;
 }
 
-// C0-C7        mov reg imm32
+// C0           mov reg imm32
 U8 MOVri(GC* gc) {
   gc->reg[gc->mem[gc->EPC+1] % 32] = Read32(gc, gc->EPC+2);
   gc->EPC += 6;
@@ -773,28 +777,42 @@ U8 DIVrc(GC* gc) {
   return 0;
 }
 
-// D0-D7        mov reg byte[imm32]
+// D0           mov reg byte[imm32]
 U8 MOVrb(GC* gc) {
   gc->reg[gc->mem[gc->EPC+1] % 32] = gc->mem[Read32(gc, gc->EPC+2)];
   gc->EPC += 6;
   return 0;
 }
 
-// D8-DF        mov reg word[imm32]
+// D4           mov reg dword[imm32]
+U8 MOVrd(GC* gc) {
+  gc->reg[gc->mem[gc->EPC+1] % 32] = Read32(gc, Read32(gc, gc->EPC+2));
+  gc->EPC += 6;
+  return 0;
+}
+
+// D8           mov reg word[imm32]
 U8 MOVrw(GC* gc) {
   gc->reg[gc->mem[gc->EPC+1] % 32] = ReadWord(gc, Read32(gc, gc->EPC+2));
   gc->EPC += 6;
   return 0;
 }
 
-// E0-E7        mov byte[imm32] reg
+// E0           mov byte[imm32] reg
 U8 MOVbr(GC* gc) {
   gc->mem[Read32(gc, gc->EPC+2)] = gc->reg[gc->mem[gc->EPC+1] % 32];
   gc->EPC += 6;
   return 0;
 }
 
-// E8-EF        mov word[imm32] reg
+// E4           mov dword[imm32] reg
+U8 MOVdr(GC* gc) {
+  Write32(gc, Read32(gc, gc->EPC+2), gc->reg[gc->mem[gc->EPC+1] % 32]);
+  gc->EPC += 6;
+  return 0;
+}
+
+// E8           mov word[imm32] reg
 U8 MOVwr(GC* gc) {
   WriteWord(gc, Read32(gc, gc->EPC+2), gc->reg[gc->mem[gc->EPC+1] % 32]);
   gc->EPC += 6;
@@ -834,9 +852,9 @@ U8 (*INSTS[256])() = {
   &JEa  , &JNEa , &JCa  , &JNCa , &JSa  , &JNa  , &JIa  , &JNIa , &RE   , &RNE  , &RC   , &RNC  , &RS   , &RN   , &RI   , &RNI  ,
   &PUSHi, &UNK  , &UNK  , &UNK  , &UNK  , &PUSHr, &POPr , &UNK  , &LOOPa, &LDDS , &LDDG , &STDS , &STDG , &UNK  , &UNK  , &POWrc,
   &MOVri, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &SUBrc, &MULrc, &DIVrc, &UNK  , &UNK  , &UNK  , &UNK  , &MOVrc,
-  &MOVrb, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &MOVrw, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
-  &MOVbr, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &MOVwr, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
-  &RSWP , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK
+  &MOVrb, &UNK  , &UNK  , &UNK  , &MOVrd, &UNK  , &UNK  , &UNK  , &MOVrw, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
+  &MOVbr, &UNK  , &UNK  , &UNK  , &MOVdr, &UNK  , &UNK  , &UNK  , &MOVwr, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
+  &RSWP , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &CIF  , &CFI  , &ADDF , &SUBF , &MULF , &DIVF , &NEGF , &UNK
 /*INSTS_END*/};
 
 U8 (*INSTS_PG0F[256])() = {
@@ -918,7 +936,8 @@ U8 Exec(GC* gc, const U32 memsize, U8 verbosemode) {
     insts++;
     // printh(gc->EPC, "\n");
     if (exc != 0) {
-      printf("gc32: executed 1E%.10lf instructions\n", log10(insts));
+      U32 s = ceil(log10(insts))-1;
+      printf("gc32: executed %.3lfE%d instructions\n", insts/pow(10, s), s);
       printf(verbosemode ? "last executed instruction: \033[32m$%02X\033[0m\n" : "", gc->mem[gc->EPC]);
       printf(verbosemode ? "last executed address: \033[33m#%08X\033[0m\n" : "", gc->EPC);
       return gc_errno;

@@ -20,7 +20,7 @@ write:
 ;   ax -- number
 puti:
   mov %egi puti_buf
-  add %egi 7
+  add %egi 9
 .loop:
   div %eax 10 ; Divide and get the remainder into %edx
   add %edx 48 ; Convert to ASCII
@@ -29,19 +29,19 @@ puti:
   cmp %eax $00
   jne .loop
   mov %esi puti_buf
-  mov %ecx 8
+  mov %ecx 10
   call write
   call puti_clr
   ret
 puti_clr:
   mov %esi puti_buf
   mov %eax $00
-  mov %ecx 7 ; 8 == floor(log(U24_MAX))+1;
+  mov %ecx 9 ; 10 == floor(log(U24_MAX))+1;
 .loop:
   stob %esi %eax
   loop .loop
   ret
-puti_buf: reserve 8 bytes
+puti_buf: reserve 10 bytes
 
 strtok:
   lodb %esi %eax

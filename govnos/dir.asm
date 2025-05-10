@@ -3,15 +3,10 @@ dir_main:
   mov %eax $00
   call strtok
   mov %r13 %esi
-
-  mov %esi hcom
-  int $81
-  mov %esi %r13
-  int $81
-  push '#'
-  int $02
-  push $0A
-  int $02
+  lodb %r13 %e8
+  dex %r13
+  cmp %e8 $00 ; If no CLI arguments
+  je .no_args
 
   mov %esi $1F0000 ; Drive letter
   lodb %esi %ebx
@@ -80,11 +75,13 @@ dir_main:
   pop %esi
   add %esi $200
   jmp .loop
+.no_args:
+  mov %esi dir_msg03
+  int $81
+  ret
 
 dir_msg00: bytes "Volume in drive ^@"
 dir_msg01: bytes " has no label.$Directory of ^@"
 dir_msg02: bytes "/$^@"
+dir_msg03: bytes "No tag given. Try `dir com` to see executables or `dir txt` to see text files.$^@"
 header:    reserve 15 bytes
-
-hcom:      bytes "Arguments given: #^@"
-

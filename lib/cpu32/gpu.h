@@ -49,17 +49,21 @@ U0 GGinit(gc_gg16* gg, SDL_Renderer* r, U8 scale) {
 }
 
 U0 GGflush(GC* gc) {
-  U8 byte;
+  U8 byte = gc->mem[0x450000];
+  U16 palitro = (gc->mem[0x4A0000+2*byte]) + (gc->mem[0x4A0001+2*byte] << 8);
   byte = gc->mem[0x450000];
-  SDL_SetRenderDrawColor(gc->renderer, rgbv[byte%16].r, rgbv[byte%16].g, rgbv[byte%16].b, 0xFF);
+  SDL_SetRenderDrawColor(gc->renderer,
+    ((palitro&0b0111110000000000)>>10)*8, // R
+    ((palitro&0b0000001111100000)>>5)*8,  // G
+    ((palitro&0b0000000000011111))*8,     // B
+    0xFF);
   memset(gc->mem+0x400000, byte, VGASIZE);
-  SDL_RenderPresent(gc->renderer);
+  // SDL_RenderPresent(gc->renderer);
 }
 
 U0 GGpage_CGA16(GC* gc) {
   U8 byte;
   for (U32 i = 0; i < VGASIZE; i++) {
-    byte = gc->mem[0x400000+i];
     SDL_SetRenderDrawColor(gc->renderer, rgbv[byte%16].r, rgbv[byte%16].g, rgbv[byte%16].b, 0xFF);
     SDL_RenderDrawPoint(gc->renderer, i%WINW, i/WINW);
   }
@@ -88,19 +92,29 @@ U0 GGpage(GC* gc) {
 
 // PPU functions
 U0 GGsprite_256(GC* gc) {
-  U32 to = gc->reg[0x04]; // SI
-  U32 from = gc->reg[0x05]; // GI
+  U32 to = gc->reg[0x04];   // ESI
+  U32 from = gc->reg[0x05]; // EGI
   for (U8 y = 0; y < 8; y++) {
     for (U8 x = 0; x < 8; x++) {
-      gc->mem[to+(y*640)+x] = gc->mem[from+(y*8)+x];
+      if ((gc->mem[from+(y*8)+x])) gc->mem[to+(y*640)+x] = (gc->mem[from+(y*8)+x]);
+    }
+  }
+}
+
+U0 GGsprite_read_256(GC* gc) {
+  U32 to = gc->reg[0x05];   // ESI
+  U32 from = gc->reg[0x04]; // EGI
+  for (U8 y = 0; y < 8; y++) {
+    for (U8 x = 0; x < 8; x++) {
+      gc->mem[to+(y*8)+x] = gc->mem[from+(y*640)+x];
     }
   }
 }
 
 U0 GGsprite_mono(GC* gc) {
-  U32 to = gc->reg[0x04]; // SI
-  U32 from = gc->reg[0x05]; // GI
-  U8 color = gc->reg[0x00]; // AX
+  U32 to = gc->reg[0x04];   // ESI
+  U32 from = gc->reg[0x05]; // EGI
+  U8 color = gc->reg[0x00]; // EAX
   for (U8 y = 0; y < 8; y++) {
     for (U8 x = 0; x < 8; x++) {
       gc->mem[to+(y*640)+x] = color*((gc->mem[from+y] & (1<<(7-x))) >> (7-x));

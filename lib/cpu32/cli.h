@@ -83,8 +83,9 @@ U8 ExecD(GC* gc, U8 trapped) {
   if (trapped) printf("\n\033[91mtrapped\033[0m at PC$%08X\n", gc->EPC);
   else printf("gc32 emu %s\n", GC24_VERSION);
 
-  execloop:
+execloop:
   fputs(": ", stdout);
+  fflush(stdout);
   getline(&buf, &bufsize, stdin);
   j = 0;
   tokens[j] = strtok(buf, " ");

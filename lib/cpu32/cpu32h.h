@@ -1,6 +1,6 @@
 // Header include file for lib/cpu32/cpu32.h
-#ifndef CPU16H_H
-#define CPU16H_H 1
+#ifndef CPU32H_H
+#define CPU32H_H 1
 
 /*
   The memory size is set to 32 MiB or 33,554,432 bytes.
@@ -32,6 +32,7 @@ struct GC32 {
 };
 typedef struct GC32 GC;
 void PlayBeep(double frequency);
+gcrc_t ReadRegClust(U8 clust);
 
 U0 InitGC(GC* gc) {
   gc->mem = (U8*)malloc(MEMSIZE);

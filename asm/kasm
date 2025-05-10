@@ -41,7 +41,8 @@ KEY2   = [
   "re", "rne", "rc", "rnc", "rs", "rn", "ri", "rni", "push",
   "stob", "stow", "stoh", "mul", "div", "sub", "loop", "pop",
   "ldds", "lddg", "stds", "stdg", "sti", "iret", "pow", "and",
-  "ora", "xor", "sal", "sar", "rswp"
+  "ora", "xor", "sal", "sar", "rswp", "cif", "cfi", "addf32",
+  "subf32", "mulf32", "divf32", "negf32"
 ];
 KEYR   = {
   "eax": 0x00, "ebx": 0x01, "ecx": 0x02, "edx": 0x03, "esi": 0x04, "egi": 0x05, "esp": 0x06, "ebp": 0x07,
@@ -359,35 +360,42 @@ ParseInst = lambda toks, b, pos, pc: \
    (ASTINS, "STOWc", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "stow") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
    (ASTINS, "STODc", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "stod") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
    (ASTINS, "CMPrc", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "cmp") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
-   (ASTINS, "TRAP", None, pos + 1, pc + 2) if (b == "trap") else
-   (ASTINS, "RET", None, pos + 2, pc + 2)                     if (b == "ret") else
-   (ASTINS, "RE", None, pos + 1, pc + 2)                      if (b == "re") else
-   (ASTINS, "RNE", None, pos + 1, pc + 2)                     if (b == "rne") else
-   (ASTINS, "RC", None, pos + 1, pc + 2)                      if (b == "rc") else
-   (ASTINS, "RNC", None, pos + 1, pc + 2)                     if (b == "rnc") else
-   (ASTINS, "RS", None, pos + 1, pc + 2)                      if (b == "rs") else
-   (ASTINS, "RS", None, pos + 1, pc + 2)                      if (b == "rg") else
-   (ASTINS, "RN", None, pos + 1, pc + 2)                      if (b == "rn") else
-   (ASTINS, "RN", None, pos + 1, pc + 2)                      if (b == "rl") else
-   (ASTINS, "RI", None, pos + 1, pc + 2)                      if (b == "ri") else
-   (ASTINS, "RNI", None, pos + 1, pc + 2)                     if (b == "rni") else
-   (ASTINS, "PUSHi", toks[pos+1][1], pos + 2, pc + 6)         if ((b == "push") and (toks[pos+1][0] == T_INT)) else
-   (ASTINS, "PUSHl", toks[pos+1][1], pos + 2, pc + 6)         if ((b == "push") and (toks[pos+1][0] == T_ID)) else
-   (ASTINS, "PUSHr", toks[pos+1][1], pos + 2, pc + 2)         if ((b == "push") and (toks[pos+1][0] == T_REG)) else
-   (ASTINS, "LDDS", None, pos + 1, pc + 2)                    if (b == "ldds") else
-   (ASTINS, "LDDG", None, pos + 1, pc + 2)                    if (b == "lddg") else
-   (ASTINS, "STDS", None, pos + 1, pc + 2)                    if (b == "stds") else
-   (ASTINS, "STDG", None, pos + 1, pc + 2)                    if (b == "stdg") else
-   (ASTINS, "STI8", toks[pos+1][1], pos + 2, pc + 2)          if ((b == "sti") and (toks[pos+1][0] == T_INT)) else
-   (ASTINS, "IRET", None, pos + 2, pc + 2)                    if (b == "iret") else
-   (ASTINS, "INXbl", toks[pos+1][1], pos + 2, pc + 6)         if ((b == "inx") and (toks[pos+1][0] == T_DREB)) else
-   (ASTINS, "DEXbl", toks[pos+1][1], pos + 2, pc + 6)         if ((b == "dex") and (toks[pos+1][0] == T_DREB)) else
-   (ASTINS, "INXwl", toks[pos+1][1], pos + 2, pc + 6)         if ((b == "inx") and (toks[pos+1][0] == T_DREW)) else
-   (ASTINS, "DEXwl", toks[pos+1][1], pos + 2, pc + 6)         if ((b == "dex") and (toks[pos+1][0] == T_DREW)) else
+   (ASTINS, "TRAP", None, pos + 1, pc + 2)                              if (b == "trap") else
+   (ASTINS, "RET", None, pos + 2, pc + 2)                               if (b == "ret") else
+   (ASTINS, "RE", None, pos + 1, pc + 2)                                if (b == "re") else
+   (ASTINS, "RNE", None, pos + 1, pc + 2)                               if (b == "rne") else
+   (ASTINS, "RC", None, pos + 1, pc + 2)                                if (b == "rc") else
+   (ASTINS, "RNC", None, pos + 1, pc + 2)                               if (b == "rnc") else
+   (ASTINS, "RS", None, pos + 1, pc + 2)                                if (b == "rs") else
+   (ASTINS, "RS", None, pos + 1, pc + 2)                                if (b == "rg") else
+   (ASTINS, "RN", None, pos + 1, pc + 2)                                if (b == "rn") else
+   (ASTINS, "RN", None, pos + 1, pc + 2)                                if (b == "rl") else
+   (ASTINS, "RI", None, pos + 1, pc + 2)                                if (b == "ri") else
+   (ASTINS, "RNI", None, pos + 1, pc + 2)                               if (b == "rni") else
+   (ASTINS, "PUSHi", toks[pos+1][1], pos + 2, pc + 6)                   if ((b == "push") and (toks[pos+1][0] == T_INT)) else
+   (ASTINS, "PUSHl", toks[pos+1][1], pos + 2, pc + 6)                   if ((b == "push") and (toks[pos+1][0] == T_ID)) else
+   (ASTINS, "PUSHr", toks[pos+1][1], pos + 2, pc + 2)                   if ((b == "push") and (toks[pos+1][0] == T_REG)) else
+   (ASTINS, "LDDS", None, pos + 1, pc + 2)                              if (b == "ldds") else
+   (ASTINS, "LDDG", None, pos + 1, pc + 2)                              if (b == "lddg") else
+   (ASTINS, "STDS", None, pos + 1, pc + 2)                              if (b == "stds") else
+   (ASTINS, "STDG", None, pos + 1, pc + 2)                              if (b == "stdg") else
+   (ASTINS, "STI8", toks[pos+1][1], pos + 2, pc + 2)                    if ((b == "sti") and (toks[pos+1][0] == T_INT)) else
+   (ASTINS, "IRET", None, pos + 2, pc + 2)                              if (b == "iret") else
+   (ASTINS, "INXbl", toks[pos+1][1], pos + 2, pc + 6)                   if ((b == "inx") and (toks[pos+1][0] == T_DREB)) else
+   (ASTINS, "DEXbl", toks[pos+1][1], pos + 2, pc + 6)                   if ((b == "dex") and (toks[pos+1][0] == T_DREB)) else
+   (ASTINS, "INXwl", toks[pos+1][1], pos + 2, pc + 6)                   if ((b == "inx") and (toks[pos+1][0] == T_DREW)) else
+   (ASTINS, "DEXwl", toks[pos+1][1], pos + 2, pc + 6)                   if ((b == "dex") and (toks[pos+1][0] == T_DREW)) else
    (ASTINS, "POWrc", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "pow") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
    (ASTINS, "SALrg", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "sal") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_INT)) else
    (ASTINS, "SARrg", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "sar") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_INT)) else
-   (ASTINS, "NOP", (), pos + 1, pc + 2)                      if ((b == "nop")) else
+   (ASTINS, "CIF", toks[pos+1][1], pos + 2, pc + 2)                     if ((b == "cif") and (toks[pos+1][0] == T_REG)) else
+   (ASTINS, "CFI", toks[pos+1][1], pos + 2, pc + 2)                     if ((b == "cfi") and (toks[pos+1][0] == T_REG)) else
+   (ASTINS, "NEGF", toks[pos+1][1], pos + 2, pc + 2)                    if ((b == "negf32") and (toks[pos+1][0] == T_REG)) else
+   (ASTINS, "ADDF", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2)  if ((b == "addf32") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
+   (ASTINS, "SUBF", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2)  if ((b == "subf32") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
+   (ASTINS, "MULF", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2)  if ((b == "mulf32") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
+   (ASTINS, "DIVF", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2)  if ((b == "divf32") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
+   (ASTINS, "NOP", (), pos + 1, pc + 2)                                 if ((b == "nop")) else
    (print("kasm: unknown instruction", toks[pos]) and exit(1))
   );
 
@@ -545,6 +553,13 @@ CompileInst = lambda prog, b, labels, pos: \
    ((0xBF, (b[2][0]<<4)+b[2][1]), pos+1)            if (b[1] == "POWrc") else
    ((0x7A, (b[2][0]<<5)+(b[2][1])), pos+1)          if (b[1] == "SALrg") else
    ((0x7B, (b[2][0]<<5)+(b[2][1])), pos+1)          if (b[1] == "SARrg") else
+   ((0xF8, b[2]), pos+1)                            if (b[1] == "CIF") else
+   ((0xF9, b[2]), pos+1)                            if (b[1] == "CFI") else
+   ((0xFE, b[2]), pos+1)                            if (b[1] == "NEGF") else
+   ((0xFA, (b[2][0]<<4)+b[2][1]), pos+1)            if (b[1] == "ADDF") else
+   ((0xFB, (b[2][0]<<4)+b[2][1]), pos+1)            if (b[1] == "SUBF") else
+   ((0xFC, (b[2][0]<<4)+b[2][1]), pos+1)            if (b[1] == "MULF") else
+   ((0xFD, (b[2][0]<<4)+b[2][1]), pos+1)            if (b[1] == "DIVF") else
    [print("kasm: unknown compilation node %s" % b[1]), (tuple(), 0x1_00_0000)][1]
   );
 
