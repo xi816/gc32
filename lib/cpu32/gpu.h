@@ -64,6 +64,7 @@ U0 GGflush(GC* gc) {
 U0 GGpage_CGA16(GC* gc) {
   U8 byte;
   for (U32 i = 0; i < VGASIZE; i++) {
+    byte = gc->mem[0x00400000+i];
     SDL_SetRenderDrawColor(gc->renderer, rgbv[byte%16].r, rgbv[byte%16].g, rgbv[byte%16].b, 0xFF);
     SDL_RenderDrawPoint(gc->renderer, i%WINW, i/WINW);
   }

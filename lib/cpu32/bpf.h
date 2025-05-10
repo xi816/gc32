@@ -18,9 +18,9 @@ U16 GC_GOVNODATE() {
   time_t rawtm;
   struct tm* localtm;
 
-  //             Year   Mon  Day
-  //             /-----\/--\/---\
-  // Govndate 2: 0000000000000000
+  /*             Year   Mon  Day    */
+  /*             /-----\/--\/---\   */
+  /* Govndate 2: 0000000000000000   */
   time(&rawtm);
   localtm = localtime(&rawtm);
   return ((localtm->tm_year-70)<<9) + (localtm->tm_mon<<5) + (localtm->tm_mday-1);

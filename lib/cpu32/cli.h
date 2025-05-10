@@ -5,14 +5,14 @@
 #define EXEC_START 1
 
 typedef struct GC32 GC;
-char* regf[32] = {
+I8* regf[32] = {
   "EAX","EBX","ECX","EDX","ESI","EGI","ESP","EBP",
   "E8 ","E9 ","E10","E11","E12","E13","E14","E15",
   "E16","E17","E18","E19","E20","E21","E22","E23",
   "E24","E25","E26","E27","E28","E29","E30","E31"
 };
 
-U8 cli_DisplayReg(GC* gc) {
+U0 cli_DisplayReg(GC* gc) {
   for (U8 i = 0; i < 32; i++) {
     if ((i != 0) && !(i%4)) putchar(10);
     printf("%s:\033[93m$%08X\033[0m  ", regf[i], gc->reg[i]);
@@ -22,7 +22,7 @@ U8 cli_DisplayReg(GC* gc) {
   printf("\n   -I---ZNC\n");
 }
 
-U8 cli_DisplayStack(GC* gc, U16 N) {
+U0 cli_DisplayStack(GC* gc, U16 N) {
   for (U8 i = 0; i < N; i++) {
     printf("\033[93m%08X\033[0m\t\033[96m$%08X\033[0m\n", 0xFEFFFF-(i*3),
       ((gc->mem[0xFEFFFF-(i*3-2)]) + (gc->mem[0xFEFFFF-(i*3-1)] << 8) + (gc->mem[0xFEFFFF-(i*3)] << 16)));
@@ -74,7 +74,6 @@ U8 cli_InsertMem(GC* gc, U16 addr, U8 byte) {
 }
 
 U8 ExecD(GC* gc, U8 trapped) {
-  char* inpt;
   char* tokens[10];
   size_t bufsize = 25;
   uint8_t j = 0;

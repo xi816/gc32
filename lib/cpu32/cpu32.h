@@ -928,7 +928,6 @@ U0 RegDump(GC* gc) {
 
 U8 Exec(GC* gc, const U32 memsize, U8 verbosemode) {
   U8 exc = 0;
-  U8 step = 0;
   U32 insts = 0;
   SDL_ShowCursor(SDL_DISABLE);
   execloop:

@@ -15,7 +15,6 @@ new_st;
 #include <cpu32/bpf.h>
 #include <cpu32/cli.h>
 #include <cpu32/cpu32.h>
-#include <cpu32/disasm.h>
 
 /* usage -- Show usage of the emulator */
 U8 usage() {
@@ -26,7 +25,6 @@ U8 usage() {
   puts("  bios   <file>  Load the file as BIOS");
   puts("  cli            Start the emulator in CLI mode");
   puts("  disk   <file>  Load the file as ROM");
-  puts("  disasm <file>  Disassemble the binary file instead of running it");
   puts("  help           Show help");
   return 0;
 }
@@ -44,17 +42,17 @@ U8 loadBootSector(U8* drive, U8* mem, U32 start, U32 to) {
   return 0;
 }
 
-U8 main(I32 argc, I8** argv) {
+// fy -Wall :(
+I32 main(I32 argc, I8** argv) {
   set_st;
   srand(time(NULL));
   U8 driveboot;
   U8 climode = 0;
-  U8 disasmmode = 0;
   U8 verbosemode = 0;
   U8 scale = 1;
   U8 argp = 1; // 256 arguments is enough for everyone
-  U8* filename = NULL;
-  U8* biosfile = NULL;
+  I8* filename = NULL;
+  I8* biosfile = NULL;
 
   driveboot = 0;
   if (argc == 1) {
@@ -86,10 +84,6 @@ U8 main(I32 argc, I8** argv) {
       usage();
       exit(1);
     }
-    else if ((!strcmp(argv[argp], "disasm")) || (!strcmp(argv[argp], "-D")) || (!strcmp(argv[argp], "--disasm"))) {
-      disasmmode = 1;
-      argp++;
-    }
     else if ((!strcmp(argv[argp], "scale")) || (!strcmp(argv[argp], "-s")) || (!strcmp(argv[argp], "--scale"))) {
       scale = atoi(argv[argp+1]);
       argp += 2;
@@ -120,12 +114,6 @@ U8 main(I32 argc, I8** argv) {
     }
     fread(gc.mem+0x030000, 1, MEMSIZE, fl);
     fclose(fl);
-    if (disasmmode) {
-      if (disasm(gc.mem, MEMSIZE, stdout) == 1)
-        puts("unexpected instruction");
-      old_st;
-      return 1;
-    }
     // Disk signaures for GovnFS (without them, fs drivers would not work)
     gc.rom[0x00] = 0x60;
     gc.rom[0x11] = '#';

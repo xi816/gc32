@@ -43,6 +43,7 @@ int32_t main(int argc, char** argv) {
   system("./kasm -o 200000 -i govnos/boot.exp -i govnos/krnl.exp govnos/gsh.asm govnos/gsh.bin");
   system("./kasm -o 200000 -i govnos/krnl.exp govnos/calc.asm govnos/calc.bin");
   system("./kasm -o 200000 -i govnos/krnl.exp -i govnos/boot.exp govnos/cat.asm govnos/cat.bin");
+  system("./kasm -o 200000 govnos/gtutor.asm govnos/gtutor.bin");
 
   // Load GovnOS
   printf("\nLoading GovnOS into %s%s%s... ", color, argv[1], rcolor); fflush(stdout);
@@ -57,6 +58,7 @@ int32_t main(int argc, char** argv) {
   sprintf(fcom, "./ugovnfs -c %s govnos/gsh.bin gsh com", argv[1]); system(fcom);
   sprintf(fcom, "./ugovnfs -c %s govnos/calc.bin calc com", argv[1]); system(fcom);
   sprintf(fcom, "./ugovnfs -c %s govnos/cat.bin cat com", argv[1]); system(fcom);
+  sprintf(fcom, "./ugovnfs -c %s govnos/gtutor.bin gtutor com", argv[1]); system(fcom);
   sprintf(fcom, "./ugovnfs -c %s govnos/test.txt test.txt txt", argv[1]); system(fcom);
   return 0;
 }
