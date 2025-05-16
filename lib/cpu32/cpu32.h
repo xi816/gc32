@@ -9,6 +9,8 @@
 #define BIOSNOBNK 16
 #define BANKSIZE 65536
 
+#define CALL_ERROR_INT(gc, a) gc->EPC = Read32(gc, (a)*4+0x2000)
+
 /*
   CPU info:
   Speed: 8.5THz
@@ -153,7 +155,7 @@ U8 TRAP(GC* gc) {
 
 // 03           sti
 U8 STI(GC* gc) {
-  Write32(gc, (((gc->mem[gc->EPC+1]-0x80)*4)+0x2000), gc->reg[ESI]);
+  Write32(gc, (((gc->mem[gc->EPC+1])*4)+0x2000), gc->reg[ESI]);
   gc->EPC += 2;
   return 0;
 }
@@ -277,7 +279,7 @@ U8 INT(GC* gc) {
   if (gc->mem[gc->EPC+1] >= 0x80) { // Custom interrupt
     StackPush(gc, gc->EPC+2); // Return address
     StackPush(gc, gc->PS); // Flags
-    gc->EPC = Read32(gc, ((gc->mem[gc->EPC+1]-0x80)*4)+0x2000);
+    gc->EPC = Read32(gc, ((gc->mem[gc->EPC+1])*4)+0x2000);
     return 0;
   }
   switch (gc->mem[gc->EPC+1]) {
@@ -497,6 +499,10 @@ U8 LODDc(GC* gc) {
 // 80           div reg imm32
 U8 DIVri(GC* gc) {
   U32 a = Read32(gc, gc->EPC+2);
+  if (a == 0) {
+    CALL_ERROR_INT(gc, 0xC0);
+    return 0;
+  }
   U8 r = gc->mem[gc->EPC+1] % 32; // reg
   gc->reg[EDX] = (gc->reg[r] % a);
   gc->reg[r] /= a;
@@ -771,6 +777,10 @@ U8 MULrc(GC* gc) {
 // CA           div rc
 U8 DIVrc(GC* gc) {
   gcrc_t rc = ReadRegClust(gc->mem[gc->EPC+1]);
+  if (gc->reg[rc.y] == 0) {
+    CALL_ERROR_INT(gc, 0xC0);
+    return 0;
+  }
   gc->reg[EDX] = gc->reg[rc.x] % gc->reg[rc.y]; // Remainder into %dx
   gc->reg[rc.x] /= gc->reg[rc.y];
   gc->EPC += 2;
@@ -931,6 +941,7 @@ U8 Exec(GC* gc, const U32 memsize, U8 verbosemode) {
   U32 insts = 0;
   SDL_ShowCursor(SDL_DISABLE);
   execloop:
+    // printf("%08X\n", gc->EPC);
     exc = (INSTS[gc->mem[gc->EPC]])(gc);
     insts++;
     // printh(gc->EPC, "\n");

@@ -5,9 +5,10 @@
 
 // F8           cif
 U8 CIF(GC* gc) {
-  F32 reg = (F32)gc->reg[gc->mem[gc->EPC+1]];
-  reg = *(U32*) &reg;
-  gc->reg[gc->mem[gc->EPC+1]] = reg;
+  U32 reg = gc->reg[(gc->mem[gc->EPC+1])];
+  F32 a = reg;
+  a = *(F32*) &a;
+  gc->reg[gc->mem[gc->EPC+1]] = a;
   gc->EPC += 2;
   return 0;
 }
@@ -15,8 +16,8 @@ U8 CIF(GC* gc) {
 // F9           cfi
 U8 CFI(GC* gc) {
   U32 reg = gc->reg[gc->mem[gc->EPC+1]];
-  reg = *(F32*) &reg;
-  gc->reg[gc->mem[gc->EPC+1]] = reg;
+  F32 a = *(F32*) &reg;
+  gc->reg[gc->mem[gc->EPC+1]] = a;
   gc->EPC += 2;
   return 0;
 }
