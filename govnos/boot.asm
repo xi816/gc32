@@ -505,7 +505,6 @@ help_msg:    bytes "^[[38;5;69m+-------------------------------------------+$"
              bytes "^[[38;5;69m|  ^[[92mexit        ^[[93mExit from the shell^[[38;5;69m          |$"
              bytes "^[[38;5;69m|  ^[[92mgsfetch     ^[[93mShow system info^[[38;5;69m             |$"
              bytes "^[[38;5;69m|  ^[[92mhelp        ^[[93mShow help^[[38;5;69m                    |$"
-             bytes "^[[38;5;69m|  ^[[92minfo        ^[[93mShow OS release info^[[38;5;69m         |$"
              bytes "^[[38;5;69m+-------------------------------------------+^[[0m$^@"
 
 com_hi:      bytes "hi "
