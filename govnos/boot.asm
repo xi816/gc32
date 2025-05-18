@@ -8,8 +8,8 @@ b_scans:
   pop %eax
   cmp %eax $7F
   je .back
-  cmp %eax $1B
-  je b_scans.loop
+  ; cmp %eax $1B
+  ; je b_scans.loop
   push %eax
   int 2
   cmp %eax $0A
@@ -488,14 +488,15 @@ govnos_echo:
   int 2
   jmp shell.aftexec
 
-welcome_msg:   bytes "Welcome to ^[[92mGovnOS^[[0m$^@"
-krnl_load_msg: bytes "Loading ^[[92m:/krnl.bin/com^[[0m...$^@"
-emp_sec_msg00: bytes "$Disk sectors used: ^[[92m^@"
+welcome_msg:   bytes "Welcome to ^[[33mGovnOS^[[0m$^@"
+krnl_load_msg: bytes "Loading ^[[38;5;136m:/krnl.bin/com^[[0m...$^@"
+emp_sec_msg00: bytes "$Disk sectors used: ^[[93m^@"
 emp_sec_msg01: bytes "^[[0m$$^@"
 bad_command:   bytes "Bad command: ^@"
 
 help_msg:    bytes "^[[38;5;69m+-------------------------------------------+$"
              bytes "^[[38;5;69m|^[[96mGovnOS help page 1/1^[[38;5;69m                       |$"
+             bytes "^[[38;5;69m|  ^[[92mcat         ^[[93mOutput file contents^[[38;5;69m         |$"
              bytes "^[[38;5;69m|  ^[[92mcalc        ^[[93mCalculator^[[38;5;69m                   |$"
              bytes "^[[38;5;69m|  ^[[92mcls         ^[[93mClear the screen^[[38;5;69m             |$"
              bytes "^[[38;5;69m|  ^[[92mdir         ^[[93mShow files on the disk^[[38;5;69m       |$"

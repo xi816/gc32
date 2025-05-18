@@ -1,0 +1,11 @@
+start	30000
+main_loop	3000E
+main_loop.print_cmd	3005C
+main_loop.add_cmd	30076
+main_loop.text_input	3007C
+puts	300AA
+scans	300BE
+prompt	300E0
+cmd_buf	300E5
+buf_start	300E7
+buf_end	304E7
