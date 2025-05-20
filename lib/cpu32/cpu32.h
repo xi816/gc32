@@ -482,7 +482,7 @@ U8 LODWc(GC* gc) {
 U8 STODc(GC* gc) {
   gcrc_t rc = ReadRegClust(gc->mem[gc->EPC+1]);
   Write32(gc, gc->reg[rc.x], gc->reg[rc.y]);
-  gc->reg[rc.x] += 3;
+  gc->reg[rc.x] += 4;
   gc->EPC += 2;
   return 0;
 }
@@ -491,7 +491,7 @@ U8 STODc(GC* gc) {
 U8 LODDc(GC* gc) {
   gcrc_t rc = ReadRegClust(gc->mem[gc->EPC+1]);
   gc->reg[rc.y] = Read32(gc, gc->reg[rc.x]);
-  gc->reg[rc.x] += 3;
+  gc->reg[rc.x] += 4;
   gc->EPC += 2;
   return 0;
 }
