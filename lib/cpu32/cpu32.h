@@ -298,13 +298,20 @@ U8 INT(GC* gc) {
     Reset(gc);
     return 0;
   case INT_CANREAD:
-      struct pollfd pfds[1];
-      pfds[0].fd = fileno(stdin);
-      pfds[0].events = POLLIN;
-      pfds[0].revents = 0;
-      poll(&pfds[0], 1, 0);
-      gc->reg[EDX] = pfds[0].revents & POLLIN ? 1 : 0;
-      break;
+    struct pollfd pfds[1];
+    pfds[0].fd = fileno(stdin);
+    pfds[0].events = POLLIN;
+    pfds[0].revents = 0;
+    poll(&pfds[0], 1, 0);
+    gc->reg[EDX] = pfds[0].revents & POLLIN ? 1 : 0;
+    break;
+  case INT_CPUID:
+    gc->reg[EAX] = GC32_NAME_00;
+    gc->reg[EBX] = GC32_NAME_01;
+    gc->reg[ECX] = GC32_NAME_02;
+    gc->reg[EDX] = GC32_NAME_03;
+    gc->reg[ESI] = PROC_TYPE_GC32;
+    gc->reg[E8]  = MEMSIZE;
   case INT_VIDEO_FLUSH:
     GGpage(gc);
     break;
@@ -894,7 +901,7 @@ U8 PG0F(GC* gc) {   // 0FH
 U0 Reset(GC* gc) {
   gc->EPC = 0x00700000;
   // Reset the general purpose registers
-  for (U8 i = 0; i < 32; i++) 
+  for (U8 i = 0; i < 32; i++)
     gc->reg[i] = 0x00000000;
   gc->reg[ESP] = 0x00FEFFFF;
   gc->reg[EBP] = 0x00FEFFFF;

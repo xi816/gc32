@@ -34,6 +34,10 @@ typedef struct GC32 GC;
 void PlayBeep(double frequency);
 gcrc_t ReadRegClust(U8 clust);
 
+U0 WriteByte(GC* gc, U32 addr, U8 val);
+U0 WriteWord(GC* gc, U32 addr, U16 val);
+U0 Write32(GC* gc, U32 addr, U32 val);
+
 U0 InitGC(GC* gc) {
   gc->mem = (U8*)malloc(MEMSIZE);
   gc->rom = (U8*)malloc(ROMSIZE);
