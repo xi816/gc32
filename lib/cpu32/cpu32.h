@@ -449,6 +449,20 @@ U8 SARrg(GC* gc) {
   return 0;
 }
 
+// 7C           lobb rc
+U8 LOBBg(GC* gc) {
+  gc->reg[(gc->mem[gc->EPC+1]&0b11100000)>>5] = gc->mem[gc->reg[EBP] + (gc->mem[gc->EPC+1]&0b00011111)];
+  gc->EPC += 2;
+  return 0;
+}
+
+// 7D           stbb rc
+U8 STBBg(GC* gc) {
+  gc->mem[gc->reg[EBP] + (gc->mem[gc->EPC+1]&0b00011111)] = gc->reg[(gc->mem[gc->EPC+1]&0b11100000)>>5];
+  gc->EPC += 2;
+  return 0;
+}
+
 // 7E           stob rc
 U8 STOBc(GC* gc) {
   gcrc_t rc = ReadRegClust(gc->mem[gc->EPC+1]);
@@ -463,42 +477,6 @@ U8 LODBc(GC* gc) {
   gcrc_t rc = ReadRegClust(gc->mem[gc->EPC+1]);
   gc->reg[rc.y] = gc->mem[gc->reg[rc.x]];
   gc->reg[rc.x]++;
-  gc->EPC += 2;
-  return 0;
-}
-
-// 8E           stow rc
-U8 STOWc(GC* gc) {
-  gcrc_t rc = ReadRegClust(gc->mem[gc->EPC+1]);
-  WriteWord(gc, gc->reg[rc.x], gc->reg[rc.y]);
-  gc->reg[rc.x] += 2;
-  gc->EPC += 2;
-  return 0;
-}
-
-// 8F           lodw rc
-U8 LODWc(GC* gc) {
-  gcrc_t rc = ReadRegClust(gc->mem[gc->EPC+1]);
-  gc->reg[rc.y] = ReadWord(gc, gc->reg[rc.x]);
-  gc->reg[rc.x] += 2;
-  gc->EPC += 2;
-  return 0;
-}
-
-// 9E           stod rc
-U8 STODc(GC* gc) {
-  gcrc_t rc = ReadRegClust(gc->mem[gc->EPC+1]);
-  Write32(gc, gc->reg[rc.x], gc->reg[rc.y]);
-  gc->reg[rc.x] += 4;
-  gc->EPC += 2;
-  return 0;
-}
-
-// 9F           lodd rc
-U8 LODDc(GC* gc) {
-  gcrc_t rc = ReadRegClust(gc->mem[gc->EPC+1]);
-  gc->reg[rc.y] = Read32(gc, gc->reg[rc.x]);
-  gc->reg[rc.x] += 4;
   gc->EPC += 2;
   return 0;
 }
@@ -523,10 +501,74 @@ U8 JMPa(GC* gc) {
   return 0;
 }
 
+// 8C           lobw rc
+U8 LOBWg(GC* gc) {
+  gc->reg[(gc->mem[gc->EPC+1]&0b11100000)>>5] = ReadWord(gc, gc->reg[EBP] + (gc->mem[gc->EPC+1]&0b00011111));
+  gc->EPC += 2;
+  return 0;
+}
+
+// 8D           stbw rc
+U8 STBWg(GC* gc) {
+  WriteWord(gc, gc->reg[EBP] + (gc->mem[gc->EPC+1]&0b00011111), gc->reg[(gc->mem[gc->EPC+1]&0b11100000)>>5]);
+  gc->EPC += 2;
+  return 0;
+}
+
+// 8E           stow rc
+U8 STOWc(GC* gc) {
+  gcrc_t rc = ReadRegClust(gc->mem[gc->EPC+1]);
+  WriteWord(gc, gc->reg[rc.x], gc->reg[rc.y]);
+  gc->reg[rc.x] += 2;
+  gc->EPC += 2;
+  return 0;
+}
+
+// 8F           lodw rc
+U8 LODWc(GC* gc) {
+  gcrc_t rc = ReadRegClust(gc->mem[gc->EPC+1]);
+  gc->reg[rc.y] = ReadWord(gc, gc->reg[rc.x]);
+  gc->reg[rc.x] += 2;
+  gc->EPC += 2;
+  return 0;
+}
+
 // 90           sub reg word[imm32]
 U8 SUBrw(GC* gc) {
   gc->reg[gc->mem[gc->EPC+1] % 32] -= ReadWord(gc, Read32(gc, gc->EPC+2));
   gc->EPC += 6;
+  return 0;
+}
+
+// 9C           lobd rg
+U8 LOBDg(GC* gc) {
+  gc->reg[(gc->mem[gc->EPC+1]&0b11100000)>>5] = Read32(gc, gc->reg[EBP] + (gc->mem[gc->EPC+1]&0b00011111));
+  gc->EPC += 2;
+  return 0;
+}
+
+// 9D           stbd rg
+U8 STBDg(GC* gc) {
+  Write32(gc, gc->reg[EBP] + (gc->mem[gc->EPC+1]&0b00011111), gc->reg[(gc->mem[gc->EPC+1]&0b11100000)>>5]);
+  gc->EPC += 2;
+  return 0;
+}
+
+// 9E           stod rc
+U8 STODc(GC* gc) {
+  gcrc_t rc = ReadRegClust(gc->mem[gc->EPC+1]);
+  Write32(gc, gc->reg[rc.x], gc->reg[rc.y]);
+  gc->reg[rc.x] += 4;
+  gc->EPC += 2;
+  return 0;
+}
+
+// 9F           lodd rc
+U8 LODDc(GC* gc) {
+  gcrc_t rc = ReadRegClust(gc->mem[gc->EPC+1]);
+  gc->reg[rc.y] = Read32(gc, gc->reg[rc.x]);
+  gc->reg[rc.x] += 4;
+  gc->EPC += 2;
   return 0;
 }
 
@@ -863,9 +905,9 @@ U8 (*INSTS[256])() = {
   &INXw , &INT  , &DEXw , &UNK  , &UNK  , &UNK  , &UNK  , &ADDrc, &ADDri, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
   &ADDrb, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &ADDrw, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
   &ADDbr, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &ADDwr, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
-  &CMPri, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &CALLa, &RET  , &SALrg, &SARrg, &UNK  , &UNK  , &STOBc, &LODBc,
-  &DIVri, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &JMPa , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &STOWc, &LODWc,
-  &SUBrw, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &STODc, &LODDc,
+  &CMPri, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &CALLa, &RET  , &SALrg, &SARrg, &LOBBg, &STBBg, &STOBc, &LODBc,
+  &DIVri, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &JMPa , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &LOBWg, &STBWg, &STOWc, &LODWc,
+  &SUBrw, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &LOBDg, &STBDg, &STODc, &LODDc,
   &JEa  , &JNEa , &JCa  , &JNCa , &JSa  , &JNa  , &JIa  , &JNIa , &RE   , &RNE  , &RC   , &RNC  , &RS   , &RN   , &RI   , &RNI  ,
   &PUSHi, &UNK  , &UNK  , &UNK  , &UNK  , &PUSHr, &POPr , &UNK  , &LOOPa, &LDDS , &LDDG , &STDS , &STDG , &UNK  , &UNK  , &POWrc,
   &MOVri, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &SUBrc, &MULrc, &DIVrc, &UNK  , &UNK  , &UNK  , &UNK  , &MOVrc,

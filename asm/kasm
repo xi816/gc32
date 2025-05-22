@@ -42,7 +42,8 @@ KEY2   = [
   "stob", "stow", "stoh", "mul", "div", "sub", "loop", "pop",
   "ldds", "lddg", "stds", "stdg", "sti", "iret", "pow", "and",
   "ora", "xor", "sal", "sar", "rswp", "cif", "cfi", "addf32",
-  "subf32", "mulf32", "divf32", "negf32"
+  "subf32", "mulf32", "divf32", "negf32", "lobb", "stbb", "lobw",
+  "stbw", "lobd", "stbd"
 ];
 KEYR   = {
   "eax": 0x00, "ebx": 0x01, "ecx": 0x02, "edx": 0x03, "esi": 0x04, "egi": 0x05, "esp": 0x06, "ebp": 0x07,
@@ -353,7 +354,7 @@ ParseInst = lambda toks, b, pos, pc: \
    (ASTINS, "CALLa", toks[pos+1][1], pos + 2, pc + 6)                   if ((b == "call") and (toks[pos+1][0] == T_ID)) else
    (ASTINS, "CALL2", toks[pos+1][1], pos + 2, pc + 6)                   if ((b == "call") and (toks[pos+1][0] == T_INT)) else
    (ASTINS, "CMPri", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 6) if ((b == "cmp") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_INT)) else
-   (ASTINS, "LODBc", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "lodb") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
+   (ASTINS, "LODBc", (toks[pos+2][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "lodb") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
    (ASTINS, "LODWc", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "lodw") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
    (ASTINS, "LODDc", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "lodd") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
    (ASTINS, "STOBc", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "stob") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
@@ -386,6 +387,12 @@ ParseInst = lambda toks, b, pos, pc: \
    (ASTINS, "INXwl", toks[pos+1][1], pos + 2, pc + 6)                   if ((b == "inx") and (toks[pos+1][0] == T_DREW)) else
    (ASTINS, "DEXwl", toks[pos+1][1], pos + 2, pc + 6)                   if ((b == "dex") and (toks[pos+1][0] == T_DREW)) else
    (ASTINS, "POWrc", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "pow") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
+   (ASTINS, "LOBBg", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "lobb") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_INT)) else
+   (ASTINS, "STBBg", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "stbb") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_INT)) else
+   (ASTINS, "LOBWg", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "lobw") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_INT)) else
+   (ASTINS, "STBWg", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "stbw") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_INT)) else
+   (ASTINS, "LOBDg", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "lobd") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_INT)) else
+   (ASTINS, "STBDg", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "stbd") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_INT)) else
    (ASTINS, "SALrg", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "sal") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_INT)) else
    (ASTINS, "SARrg", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "sar") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_INT)) else
    (ASTINS, "CIF", toks[pos+1][1], pos + 2, pc + 2)                     if ((b == "cif") and (toks[pos+1][0] == T_REG)) else
@@ -551,6 +558,12 @@ CompileInst = lambda prog, b, labels, pos: \
    ((0x30,0x00, *As32(labels[b[2]])), pos+1)        if (b[1] == "INXbl") else
    ((0x32,0x00, *As32(labels[b[2]])), pos+1)        if (b[1] == "DEXbl") else
    ((0xBF, (b[2][0]<<4)+b[2][1]), pos+1)            if (b[1] == "POWrc") else
+   ((0x7C, (b[2][0]<<5)+(b[2][1])), pos+1)          if (b[1] == "LOBBg") else
+   ((0x7D, (b[2][0]<<5)+(b[2][1])), pos+1)          if (b[1] == "STBBg") else
+   ((0x8C, (b[2][0]<<5)+(b[2][1])), pos+1)          if (b[1] == "LOBWg") else
+   ((0x8D, (b[2][0]<<5)+(b[2][1])), pos+1)          if (b[1] == "STBWg") else
+   ((0x9C, (b[2][0]<<5)+(b[2][1])), pos+1)          if (b[1] == "LOBDg") else
+   ((0x9D, (b[2][0]<<5)+(b[2][1])), pos+1)          if (b[1] == "STBDg") else
    ((0x7A, (b[2][0]<<5)+(b[2][1])), pos+1)          if (b[1] == "SALrg") else
    ((0x7B, (b[2][0]<<5)+(b[2][1])), pos+1)          if (b[1] == "SARrg") else
    ((0xF8, b[2]), pos+1)                            if (b[1] == "CIF") else
