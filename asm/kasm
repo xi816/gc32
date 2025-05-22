@@ -354,7 +354,7 @@ ParseInst = lambda toks, b, pos, pc: \
    (ASTINS, "CALLa", toks[pos+1][1], pos + 2, pc + 6)                   if ((b == "call") and (toks[pos+1][0] == T_ID)) else
    (ASTINS, "CALL2", toks[pos+1][1], pos + 2, pc + 6)                   if ((b == "call") and (toks[pos+1][0] == T_INT)) else
    (ASTINS, "CMPri", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 6) if ((b == "cmp") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_INT)) else
-   (ASTINS, "LODBc", (toks[pos+2][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "lodb") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
+   (ASTINS, "LODBc", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "lodb") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
    (ASTINS, "LODWc", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "lodw") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
    (ASTINS, "LODDc", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "lodd") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
    (ASTINS, "STOBc", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "stob") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
