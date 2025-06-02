@@ -43,7 +43,8 @@ KEY2   = [
   "ldds", "lddg", "stds", "stdg", "sti", "iret", "pow", "and",
   "ora", "xor", "sal", "sar", "rswp", "cif", "cfi", "addf32",
   "subf32", "mulf32", "divf32", "negf32", "lobb", "stbb", "lobw",
-  "stbw", "lobd", "stbd"
+  "stbw", "lobd", "stbd", "lodd", "stod", "jz", "jnz", "loadf",
+  "loada", "not", "nrm"
 ];
 KEYR   = {
   "eax": 0x00, "ebx": 0x01, "ecx": 0x02, "edx": 0x03, "esi": 0x04, "egi": 0x05, "esp": 0x06, "ebp": 0x07,
@@ -334,8 +335,10 @@ ParseInst = lambda toks, b, pos, pc: \
    (ASTINS, "XORrc", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2) if ((b == "xor") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
    (ASTINS, "JMPa", toks[pos+1][1], pos + 2, pc + 6)                    if ((b == "jmp") and (toks[pos+1][0] == T_ID)) else
    (ASTINS, "JMP2", toks[pos+1][1], pos + 2, pc + 6)                    if ((b == "jmp") and (toks[pos+1][0] == T_INT)) else
+   (ASTINS, "JEa", toks[pos+1][1], pos + 2, pc + 6)                     if ((b == "jz") and (toks[pos+1][0] == T_ID)) else
    (ASTINS, "JEa", toks[pos+1][1], pos + 2, pc + 6)                     if ((b == "je") and (toks[pos+1][0] == T_ID)) else
    (ASTINS, "JNEa", toks[pos+1][1], pos + 2, pc + 6)                    if ((b == "jne") and (toks[pos+1][0] == T_ID)) else
+   (ASTINS, "JNEa", toks[pos+1][1], pos + 2, pc + 6)                    if ((b == "jnz") and (toks[pos+1][0] == T_ID)) else
    (ASTINS, "JCa", toks[pos+1][1], pos + 2, pc + 6)                     if ((b == "jc") and (toks[pos+1][0] == T_ID)) else
    (ASTINS, "JNCa", toks[pos+1][1], pos + 2, pc + 6)                    if ((b == "jnc") and (toks[pos+1][0] == T_ID)) else
    (ASTINS, "JSa", toks[pos+1][1], pos + 2, pc + 6)                     if ((b == "js") and (toks[pos+1][0] == T_ID)) else
@@ -381,6 +384,8 @@ ParseInst = lambda toks, b, pos, pc: \
    (ASTINS, "STDS", None, pos + 1, pc + 2)                              if (b == "stds") else
    (ASTINS, "STDG", None, pos + 1, pc + 2)                              if (b == "stdg") else
    (ASTINS, "STI8", toks[pos+1][1], pos + 2, pc + 2)                    if ((b == "sti") and (toks[pos+1][0] == T_INT)) else
+   (ASTINS, "NOTr", toks[pos+1][1], pos + 2, pc + 2)                    if ((b == "not") and (toks[pos+1][0] == T_REG)) else
+   (ASTINS, "NRMr", toks[pos+1][1], pos + 2, pc + 2)                    if ((b == "nrm") and (toks[pos+1][0] == T_REG)) else
    (ASTINS, "IRET", None, pos + 2, pc + 2)                              if (b == "iret") else
    (ASTINS, "INXbl", toks[pos+1][1], pos + 2, pc + 6)                   if ((b == "inx") and (toks[pos+1][0] == T_DREB)) else
    (ASTINS, "DEXbl", toks[pos+1][1], pos + 2, pc + 6)                   if ((b == "dex") and (toks[pos+1][0] == T_DREB)) else
@@ -403,6 +408,8 @@ ParseInst = lambda toks, b, pos, pc: \
    (ASTINS, "MULF", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2)  if ((b == "mulf32") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
    (ASTINS, "DIVF", (toks[pos+1][1], toks[pos+2][1]), pos + 3, pc + 2)  if ((b == "divf32") and (toks[pos+1][0] == T_REG) and (toks[pos+2][0] == T_REG)) else
    (ASTINS, "NOP", (), pos + 1, pc + 2)                                 if ((b == "nop")) else
+   (ASTINS, "LOADF", (), pos + 1, pc + 2)                               if ((b == "loadf")) else
+   (ASTINS, "LOADA", (), pos + 1, pc + 2)                               if ((b == "loada")) else
    (print("kasm: unknown instruction", toks[pos]) and exit(1))
   );
 
@@ -492,6 +499,8 @@ CompileInst = lambda prog, b, labels, pos: \
    ((0x00,0x00), pos+1)                             if (b[1] == "HLT") else
    ((0xF0,0x00), pos+1)                             if (b[1] == "RSWP") else
    ((0x05,0x20), pos+1)                             if (b[1] == "NOP") else
+   ((0x0E,0x00), pos+1)                             if (b[1] == "LOADF") else
+   ((0x0F,0x00), pos+1)                             if (b[1] == "LOADA") else
    ((0x48, b[2][0], *As32(b[2][1])), pos+1)         if (b[1] == "ADDri") else
    ((0x47, (b[2][0]<<4)+b[2][1]), pos+1)            if (b[1] == "ADDrc") else
    ((0x38, (b[2][0]<<4)+b[2][1]), pos+1)            if (b[1] == "ANDrc") else
@@ -552,6 +561,8 @@ CompileInst = lambda prog, b, labels, pos: \
    ((0xBB,0x00), pos+1)                             if (b[1] == "STDS") else
    ((0xBC,0x00), pos+1)                             if (b[1] == "STDG") else
    ((0x03, b[2]), pos+1)                            if (b[1] == "STI8") else
+   ((0x0C, b[2]), pos+1)                            if (b[1] == "NOTr") else
+   ((0x0D, b[2]), pos+1)                            if (b[1] == "NRMr") else
    ((0x04,0x00), pos+1)                             if (b[1] == "IRET") else
    ((0x40,0x00, *As32(labels[b[2]])), pos+1)        if (b[1] == "INXwl") else
    ((0x42,0x00, *As32(labels[b[2]])), pos+1)        if (b[1] == "DEXwl") else

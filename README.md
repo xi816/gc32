@@ -9,6 +9,7 @@ A 32-bit CPU, that was actually [mentioned](https://github.com/xi816/cgovnos/blo
 ```bash
 gcc core/ball.c -o ball        # Bootstrap (use only on non-x86 platforms)
 ./ball                         # Build the tools and the emulator
+sudo ./ball install            # Install to $PATH
 ./prepare-disk disk.img        # Build GovnBIOS & GovnOS
 ./gc32 -b bios.img -d disk.img # Run GovnOS on GC32
 ```

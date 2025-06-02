@@ -181,6 +181,36 @@ U8 MULri(GC* gc) {
   return 0;
 }
 
+// 0C           not
+U8 NOT(GC* gc) {
+  U8 a = gc->mem[gc->EPC+1];
+  gc->reg[a] = ~gc->reg[a];
+  gc->EPC += 2;
+  return 0;
+}
+
+// 0D           nrm
+U8 NRMr(GC* gc) {
+  U8 r = gc->mem[gc->EPC+1];
+  gc->reg[r] = gc->reg[r] ? 1 : 0;
+  gc->EPC += 2;
+  return 0;
+}
+
+// 0E           loadf
+U8 LOADF(GC* gc) {
+  gc->reg[EAX] = gc->PS;
+  gc->EPC += 2;
+  return 0;
+}
+
+// 0F           loada
+U8 LOADA(GC* gc) {
+  gc->PS = gc->reg[EAX];
+  gc->EPC += 2;
+  return 0;
+}
+
 // 10           sub reg imm32
 U8 SUBri(GC* gc) {
   gc->reg[gc->mem[gc->EPC+1] % 32] -= Read32(gc, gc->EPC+2);
@@ -898,7 +928,7 @@ U8 PG0F(GC*); // Page 0F - Additional instructions page
 
 // Zero page instructions
 U8 (*INSTS[256])() = {
-  &HLT  , &TRAP , &UNK  , &STI  , &IRET , &NOP  , &UNK  , &UNK  , &MULri, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
+  &HLT  , &TRAP , &UNK  , &STI  , &IRET , &NOP  , &UNK  , &UNK  , &MULri, &UNK  , &UNK  , &UNK  , &NOT  , &NRMr , &LOADF, &LOADA,
   &SUBri, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &SUBrb, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
   &INXr , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &DEXr , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
   &INXb , &UNK  , &DEXb , &UNK  , &UNK  , &UNK  , &UNK  , &CMPrc, &ANDrc, &ORArc, &XORrc, &UNK  , &UNK  , &UNK  , &UNK  , &UNK  ,
