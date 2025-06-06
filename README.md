@@ -1,5 +1,5 @@
 # English
-
+No shit use https://github.com/xi816/gc32-20020
 # GC32 - The OG GC32 CPU, based on GC24
 
 ## Description
